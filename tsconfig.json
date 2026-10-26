@@ -10,5 +10,6 @@
     "types": ["vite/client", "node"],
     "allowImportingTsExtensions": true
   },
-  "include": ["src", "test", "e2e", "*.ts"]
+  "include": ["src", "test", "e2e", "*.ts"],
+  "exclude": ["worker", "worker-configuration.d.ts", "test/worker.test.ts"]
 }

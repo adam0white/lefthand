@@ -9,7 +9,9 @@
       "*.json",
       "scripts/*.mjs",
       "index.html",
-      "!pnpm-lock.yaml"
+      "!pnpm-lock.yaml",
+      "worker/**",
+      "!worker-configuration.d.ts"
     ]
   },
   "formatter": {
@@ -20,7 +22,7 @@
   "linter": {
     "enabled": true,
     "rules": {
-      "recommended": true
+      "preset": "recommended"
     }
   },
   "assist": {

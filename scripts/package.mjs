@@ -3,20 +3,25 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import zlib from "node:zlib";
 
+const artifacts = fs
+  .readdirSync("dist")
+  .filter((file) => file.startsWith("game.") && file !== "game.html")
+  .sort();
 const raw = fs.readFileSync("dist/game.wasm");
-const digest = crypto
-  .createHash("sha256")
-  .update(raw)
-  .update(fs.readFileSync("dist/game.pck"))
-  .digest("hex")
-  .slice(0, 16);
+const contentHash = crypto.createHash("sha256");
+for (const file of artifacts) {
+  const data = fs.readFileSync(`dist/${file}`);
+  contentHash.update(`${file}:${data.length}:`).update(data);
+}
+const digest = contentHash.digest("hex").slice(0, 16);
 const name = `game-${digest}`;
 fs.mkdirSync("dist/engine", { recursive: true });
-for (const ext of ["wasm", "js", "pck"]) {
-  const data = fs.readFileSync(`dist/game.${ext}`);
+for (const file of artifacts) {
+  const data = fs.readFileSync(`dist/${file}`);
+  const suffix = file.slice("game".length);
   fs.writeFileSync(
-    `dist/engine/${name}.${ext}`,
-    ext === "wasm" ? zlib.gzipSync(data, { level: 9 }) : data,
+    `dist/engine/${name}${suffix}${suffix === ".wasm" ? ".gz" : ""}`,
+    suffix === ".wasm" ? zlib.gzipSync(data, { level: 9 }) : data,
   );
 }
 for (const f of fs.readdirSync("dist"))
@@ -50,7 +55,7 @@ fs.writeFileSync(
 const common = fs.readFileSync("public/_headers", "utf8");
 fs.writeFileSync(
   "dist/_headers",
-  `${common}\n/engine/${name}.wasm\n  Content-Type: application/wasm\n  Content-Encoding: gzip\n  ! Cache-Control\n  Cache-Control: public, max-age=31536000, immutable, no-transform\n\n/engine/*\n  ! Cache-Control\n  Cache-Control: public, max-age=31536000, immutable\n`,
+  `${common}\n/engine/*\n  ! Cache-Control\n  Cache-Control: public, max-age=31536000, immutable\n`,
 );
 const files = fs
   .readdirSync("dist", { recursive: true })
@@ -61,7 +66,7 @@ for (const f of files)
 console.log(
   JSON.stringify({
     rawWasm: raw.length,
-    gzipWasm: fs.statSync(`dist/engine/${name}.wasm`).size,
+    gzipWasm: fs.statSync(`dist/engine/${name}.wasm.gz`).size,
     commit,
     dirty,
   }),
