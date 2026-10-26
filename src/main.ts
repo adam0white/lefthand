@@ -1,48 +1,452 @@
-import { helloFrame } from "./hello";
+import {
+  claimLabNotice,
+  createLab,
+  gameNavigation,
+  PRIVACY_URL,
+} from "@adam0white/lab-client";
+import {
+  type Command,
+  createGame,
+  exportRun,
+  hash,
+  NIGHT_LIMIT,
+  projection,
+  type Run,
+  replayRun,
+  step,
+} from "./host";
 import "./style.css";
 
-const root = document.querySelector<HTMLDivElement>("#app");
-if (!root) throw new Error("Missing app");
-root.innerHTML =
-  '<main><header><small>THREE WINTER NIGHTS</small><h1>The Left Hand</h1></header><p id="status" role="status">Lighting the village…</p><canvas id="canvas" tabindex="0" aria-label="A winter village"></canvas><p>At the table, Yusuf prepares help for Idris and Samira.</p></main>';
-const canvas = document.querySelector<HTMLCanvasElement>("#canvas");
-const status = document.querySelector<HTMLParagraphElement>("#status");
-let rendered = false;
+const element = <T extends HTMLElement>(id: string): T => {
+  const node = document.getElementById(id);
+  if (!node) throw new Error(`Missing ${id}`);
+  return node as T;
+};
+const app = document.querySelector<HTMLDivElement>("#app");
+if (!app) throw new Error("Missing app");
+app.innerHTML = `<main>
+<header><div><small>THREE WINTER NIGHTS</small><h1>The Left Hand</h1></div><button id="menu-open" aria-expanded="false" aria-controls="menu">Menu</button></header>
+<p id="recording-notice" class="notice" hidden>Play is recorded and linked across the Lab by default. <button id="notice-off">Turn recording off</button> · <a href="${PRIVACY_URL}" target="_blank" rel="noopener">Privacy</a><button id="notice-close" aria-label="Dismiss recording notice">×</button></p>
+<p id="chapter" class="chapter"></p><p id="status" role="status"></p><p id="cold-warning" role="status" hidden></p>
+<section id="evening" aria-label="At Yusuf’s table"><p id="table-line">At the table, Yusuf addresses an envelope to Idris and Samira. They need food and fuel.</p><p>Where will you leave it?</p><div class="choices"><button id="route-door">Their door · direct</button><button id="route-well">Well box · wait for handoff</button></div><p class="source">Yusuf understands concealed voluntary giving as preferable; open giving is also good. <a href="https://quran.com/2/271" target="_blank" rel="noopener">Qur’an 2:271</a> · <a href="https://sunnah.com/bukhari:1423" target="_blank" rel="noopener">Bukhari 1423</a></p></section>
+<div class="village"><canvas id="canvas" tabindex="0" aria-label="Snowy village. Move with arrow keys or WASD, or use the direction buttons."></canvas><p id="loading">Lighting the village… You can choose a route now.</p></div>
+<section id="night" aria-label="Delivery controls" hidden><div id="recovery" hidden><p>A neighbour has seen you. Explain to coordinate later help, spending 3 seconds on the dawn clock, or keep quiet and preserve your privacy.</p><div class="choices"><button id="explain">Explain</button><button id="quiet">Keep quiet</button></div></div><div id="walking"><div class="action-row"><button id="lantern">Lantern on</button><button id="act">Leave envelope</button></div><div class="directions" aria-label="Move"><button data-move="0,-1" class="up" aria-label="Move north">↑</button><button data-move="-1,0" class="left" aria-label="Move west">←</button><button data-move="0,1" class="down" aria-label="Move south">↓</button><button data-move="1,0" class="right" aria-label="Move east">→</button></div><p class="hint">Arrows / WASD move · L lantern · Enter deliver or return home</p></div></section>
+<section id="morning" aria-label="Morning accounts" hidden><div id="morning-lines"></div><button id="next">Next evening</button></section>
+<section id="ending" hidden><h2 id="ending-title"></h2><p id="ending-line"></p><button id="again">Play again</button></section>
+<section id="menu" class="menu" aria-label="Menu" hidden><div class="menu-top"><h2>Paused</h2><button id="menu-close">Return to play</button></div><p><label><input id="recording" type="checkbox"> Recording</label> · <a href="${PRIVACY_URL}" target="_blank" rel="noopener">Privacy</a></p><div class="menu-actions"><button id="feedback-stop">I’m stopping</button><button id="feedback-confused">I’m confused</button><button id="download">Download run</button><button id="verify">Verify replay</button><button id="fullscreen">Fullscreen</button><button id="new">New game</button><a id="all-games" href="https://human.adamwhite.work/">All games</a></div><div id="new-confirm" hidden><p>End this run and prepare a new envelope?</p><button id="new-yes">Start new game</button><button id="new-no">Keep this run</button></div><form id="feedback" hidden><label for="note">Add a note, if you like</label><textarea id="note" rows="3" maxlength="4000"></textarea><label><input id="share-run" type="checkbox"> Share this run with the note (turns recording on)</label><div class="choices"><button type="submit" id="feedback-send">Send feedback</button><button type="button" id="feedback-cancel">Cancel</button></div></form><p id="menu-status" role="status"></p></section>
+</main>`;
+
+const lab = createLab({ game: "lefthand" });
+let state = createGame(crypto.getRandomValues(new Uint32Array(1))[0] ?? 1);
+const queue: Command[] = [];
+let rendererReady = false;
+let menuOpen = false;
+let cachedFrame = projection(state);
+let lastStep = performance.now();
+let feedbackLabel = "";
+let lastScreen = "";
+let morningKey = "";
+const measurements = {
+  comparisons: 0,
+  mismatches: 0,
+  malformedReceipts: 0,
+  rendererReady: false,
+};
+const canvas = element<HTMLCanvasElement>("canvas");
+// Godot draws inside the page layout; its window resize policy would escape it.
+new ResizeObserver(([entry]) => {
+  if (!entry) return;
+  const scale = window.devicePixelRatio || 1;
+  canvas.width = Math.round(entry.contentRect.width * scale);
+  canvas.height = Math.round(entry.contentRect.height * scale);
+}).observe(canvas);
+const setText = (id: string, text: string) => {
+  const node = element(id);
+  if (node.textContent !== text) node.textContent = text;
+};
+const show = (id: string, visible: boolean) => {
+  element(id).hidden = !visible;
+};
+const clone = <T>(value: T): T => structuredClone(value);
+function enqueue(command: Command) {
+  if (command.type === "recover") {
+    for (let i = queue.length - 1; i >= 0; i--)
+      if (
+        queue[i]?.type === "move" ||
+        queue[i]?.type === "act" ||
+        queue[i]?.type === "lantern"
+      )
+        queue.splice(i, 1);
+  }
+  if (!rendererReady && command.type === "plan" && state.phase === "evening") {
+    step(state, clone(command));
+    update();
+  } else if (queue.length < 16) queue.push(clone(command));
+  if (!rendererReady && command.type === "plan")
+    setText(
+      "loading",
+      "Your route is chosen. The night begins when the village is ready.",
+    );
+}
+function update() {
+  const phase = state.phase;
+  const view = projection(state);
+  show("evening", phase === "evening");
+  show("night", phase === "night");
+  show("morning", phase === "morning");
+  show("ending", phase === "ended");
+  show("recovery", state.recoveryPending);
+  show("walking", !state.recoveryPending);
+  setText(
+    "chapter",
+    phase === "evening"
+      ? `Evening ${state.night} · At the table`
+      : phase === "night"
+        ? `Night ${state.night} · ${Math.ceil((NIGHT_LIMIT - state.nightTick) / 10)} seconds until dawn`
+        : phase === "morning"
+          ? `Morning ${state.night}`
+          : "After three nights",
+  );
+  setText(
+    "status",
+    state.conversationTicksRemaining > 0
+      ? `Yusuf explains the errand. ${Math.ceil(state.conversationTicksRemaining / 10)} seconds of conversation remain; dawn is getting closer.`
+      : state.status,
+  );
+  for (const button of document.querySelectorAll<HTMLButtonElement>(
+    "#walking button",
+  ))
+    button.disabled = state.conversationTicksRemaining > 0;
+  setText("lantern", `Lantern ${state.player.lantern ? "on" : "off"}`);
+  setText(
+    "act",
+    state.deliveredTonight
+      ? "Return home"
+      : view.deliveryPending
+        ? `Handoff · ${Math.ceil(view.handoffRemaining / 10)}s`
+        : "Leave envelope",
+  );
+  show("cold-warning", Boolean(view.coldWarning));
+  setText("cold-warning", view.coldWarning || "");
+  setText("next", state.night === 3 ? "After three nights" : "Next evening");
+  setText(
+    "table-line",
+    state.night === 1
+      ? "At the table, Yusuf addresses an envelope to Idris and Samira. They need food and fuel."
+      : "At the table, Yusuf prepares another envelope for Idris and Samira.",
+  );
+  const key = `${state.night}:${phase}`;
+  if (phase === "morning" && morningKey !== key) {
+    const lines = element("morning-lines");
+    lines.replaceChildren();
+    for (const person of state.morningLines) {
+      const p = document.createElement("p");
+      const name = document.createElement("strong");
+      name.textContent = `${person.name}: `;
+      p.append(name, person.line);
+      lines.append(p);
+    }
+    morningKey = key;
+  }
+  if (phase === "ended") {
+    setText(
+      "ending-title",
+      state.delivered >= 2
+        ? "The help reached them"
+        : "The household needs more help",
+    );
+    setText("ending-line", state.outcome);
+  }
+  if (key !== lastScreen) {
+    lab.screen(key);
+    lastScreen = key;
+    if (phase === "morning" || phase === "ended") lab.milestone(key);
+  }
+}
+function setMenu(open: boolean) {
+  menuOpen = open;
+  for (const child of document.querySelectorAll<HTMLElement>("main > *"))
+    if (child.id !== "menu") child.inert = open;
+  show("menu", open);
+  element("menu-open").setAttribute("aria-expanded", String(open));
+  lastStep = performance.now();
+  if (open) element("menu-close").focus();
+  else canvas.focus({ preventScroll: true });
+}
+function reset() {
+  queue.length = 0;
+  state = createGame(crypto.getRandomValues(new Uint32Array(1))[0] ?? 1);
+  morningKey = "";
+  lastStep = performance.now();
+  show("new-confirm", false);
+  show("feedback", false);
+  setMenu(false);
+  update();
+}
+function recordingUI() {
+  element<HTMLInputElement>("recording").checked = lab.telemetryOn;
+}
+lab.trackRun(() => exportRun(state), { runKey: () => state.seed });
+recordingUI();
+const labTools = new URLSearchParams(location.search).get("lab") === "1";
+show("download", labTools);
+show("verify", labTools);
+try {
+  if (localStorage.getItem("lefthand-notice-v1") !== "1") {
+    localStorage.setItem("lefthand-notice-v1", "1");
+    void claimLabNotice().then((needed) => show("recording-notice", needed));
+  }
+} catch {
+  void claimLabNotice().then((needed) => show("recording-notice", needed));
+}
+
 Object.assign(window, {
   HFBridge: {
-    ready: () => {},
-    get_frame: () => JSON.stringify(helloFrame),
-    input: () => {},
-    rendered: () => {
-      rendered = true;
-      if (status) status.textContent = "The village is ready.";
+    ready: () => {
+      rendererReady = true;
+      measurements.rendererReady = true;
+      lastStep = performance.now();
+      show("loading", false);
+    },
+    get_frame: () => {
+      cachedFrame = projection(state);
+      return JSON.stringify(cachedFrame);
+    },
+    input: (dx: number, dy: number) => {
+      if (!menuOpen && !document.hidden && state.phase === "night")
+        enqueue({ type: "move", dx, dy });
+    },
+    rendered: (text: string) => {
+      measurements.comparisons++;
+      try {
+        const receipt: unknown = JSON.parse(text);
+        if (
+          !Array.isArray(receipt) ||
+          receipt.length !== cachedFrame.tiles.length
+        ) {
+          measurements.mismatches++;
+          return;
+        }
+        const actual = new Map<string, boolean>();
+        for (const tile of receipt) {
+          if (
+            !tile ||
+            !Number.isInteger(tile.x) ||
+            !Number.isInteger(tile.y) ||
+            typeof tile.lit !== "boolean"
+          )
+            throw new Error("Invalid light receipt");
+          actual.set(`${tile.x},${tile.y}`, tile.lit);
+        }
+        if (
+          actual.size !== cachedFrame.tiles.length ||
+          cachedFrame.tiles.some(
+            (tile) => actual.get(`${tile.x},${tile.y}`) !== tile.lit,
+          )
+        )
+          measurements.mismatches++;
+      } catch {
+        measurements.malformedReceipts++;
+        measurements.mismatches++;
+      }
     },
   },
-  lefthandHello: () => ({ rendered }),
 });
+if (new URLSearchParams(location.search).get("lab") === "1")
+  Object.assign(window, {
+    Lefthand: {
+      snapshot: () => clone(state),
+      command: (command: Command) => enqueue(command),
+      export: () => exportRun(state),
+      hash: () => hash(state),
+      replay: (run: Run) => replayRun(run),
+      metrics: () => ({ ...measurements, queued: queue.length }),
+    },
+  });
+
+setInterval(() => {
+  const now = performance.now();
+  if (!rendererReady || menuOpen || document.hidden) {
+    lastStep = now;
+    return;
+  }
+  const delay = state.recoveryPending ? 300 : 100;
+  if (now - lastStep < delay) return;
+  lastStep = now;
+  if (state.phase === "night" || queue.length) {
+    step(state, queue.shift());
+    update();
+  }
+}, 20);
+document.addEventListener("visibilitychange", () => {
+  lastStep = performance.now();
+});
+element("route-door").onclick = () => enqueue({ type: "plan", route: "door" });
+element("route-well").onclick = () => enqueue({ type: "plan", route: "well" });
+element("lantern").onclick = () => enqueue({ type: "lantern" });
+element("act").onclick = () => enqueue({ type: "act" });
+element("explain").onclick = () =>
+  enqueue({ type: "recover", choice: "explain" });
+element("quiet").onclick = () =>
+  enqueue({ type: "recover", choice: "keepquiet" });
+element("next").onclick = () => enqueue({ type: "next" });
+for (const button of document.querySelectorAll<HTMLButtonElement>(
+  "[data-move]",
+))
+  button.onclick = () => {
+    const [dx = 0, dy = 0] = (button.dataset.move ?? "").split(",").map(Number);
+    enqueue({ type: "move", dx, dy });
+  };
+document.addEventListener("keydown", (event) => {
+  if (
+    event.target instanceof HTMLInputElement ||
+    event.target instanceof HTMLTextAreaElement
+  )
+    return;
+  if (event.key === "Escape") {
+    setMenu(!menuOpen);
+    return;
+  }
+  if (menuOpen || state.phase !== "night" || document.hidden) return;
+  const directions: Record<string, [number, number]> = {
+    ArrowUp: [0, -1],
+    w: [0, -1],
+    ArrowDown: [0, 1],
+    s: [0, 1],
+    ArrowLeft: [-1, 0],
+    a: [-1, 0],
+    ArrowRight: [1, 0],
+    d: [1, 0],
+  };
+  const direction = directions[event.key];
+  if (direction) {
+    event.preventDefault();
+    enqueue({ type: "move", dx: direction[0], dy: direction[1] });
+  } else if (event.key.toLowerCase() === "l") enqueue({ type: "lantern" });
+  else if (
+    (event.key === "Enter" || event.key === " ") &&
+    !(event.target instanceof HTMLButtonElement) &&
+    !(event.target instanceof HTMLAnchorElement)
+  ) {
+    event.preventDefault();
+    enqueue({ type: "act" });
+  }
+});
+element("menu-open").onclick = () => setMenu(true);
+element("menu-close").onclick = () => setMenu(false);
+element("notice-close").onclick = () => show("recording-notice", false);
+element("notice-off").onclick = () => {
+  lab.setTelemetryOff(true);
+  recordingUI();
+  show("recording-notice", false);
+};
+element<HTMLInputElement>("recording").onchange = (event) => {
+  lab.setTelemetryOff(!(event.target as HTMLInputElement).checked);
+  recordingUI();
+};
+element<HTMLAnchorElement>("all-games").onclick = (event) => {
+  event.preventDefault();
+  location.href = gameNavigation("https://human.adamwhite.work/");
+};
+element("fullscreen").onclick = () => {
+  void (
+    document.fullscreenElement
+      ? document.exitFullscreen()
+      : document.documentElement.requestFullscreen()
+  ).catch(() =>
+    setText("menu-status", "Fullscreen is unavailable in this browser."),
+  );
+};
+element("new").onclick = () => show("new-confirm", true);
+element("new-no").onclick = () => show("new-confirm", false);
+element("new-yes").onclick = reset;
+element("again").onclick = reset;
+element("download").onclick = () => {
+  const run = exportRun(state);
+  const url = URL.createObjectURL(
+    new Blob([JSON.stringify(run, null, 2)], { type: "application/json" }),
+  );
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `lefthand-${state.seed}.json`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  setText(
+    "menu-status",
+    "Run downloaded with seed, inputs, and complete state.",
+  );
+};
+element("verify").onclick = () => {
+  try {
+    const restored = replayRun(exportRun(state));
+    setText("menu-status", `Replay verified: ${hash(restored)}.`);
+  } catch (error) {
+    setText("menu-status", `Replay did not verify: ${String(error)}`);
+  }
+};
+function feedback(label: string) {
+  feedbackLabel = label;
+  show("feedback", true);
+  element<HTMLTextAreaElement>("note").focus();
+  setText("menu-status", "");
+}
+element("feedback-stop").onclick = () => feedback("I’m stopping");
+element("feedback-confused").onclick = () => feedback("I’m confused");
+element("feedback-cancel").onclick = () => show("feedback", false);
+element<HTMLFormElement>("feedback").onsubmit = async (event) => {
+  event.preventDefault();
+  const send = element<HTMLButtonElement>("feedback-send");
+  send.disabled = true;
+  const note = element<HTMLTextAreaElement>("note").value.trim();
+  const sharePlay = element<HTMLInputElement>("share-run").checked;
+  try {
+    await lab.sendFeedback(`${feedbackLabel}${note ? `\n\n${note}` : ""}`, {
+      ...(sharePlay ? { run: exportRun(state), sharePlay: true } : {}),
+    });
+    setText("menu-status", "Feedback queued for the Lab.");
+    show("feedback", false);
+    element<HTMLTextAreaElement>("note").value = "";
+    recordingUI();
+  } catch {
+    setText(
+      "menu-status",
+      "Feedback could not be queued. Your note is still here; try again.",
+    );
+  } finally {
+    send.disabled = false;
+  }
+};
+
 type EngineInstance = {
   startGame(options: { mainPack: string }): Promise<void>;
 };
 type EngineClass = new (options: Record<string, unknown>) => EngineInstance;
 async function load() {
+  const response = await fetch("/engine.json");
+  if (!response.ok) throw new Error("Engine manifest unavailable");
   const manifest: { executable: string; script: string; pack: string } =
-    await fetch("/engine.json").then((r) => r.json());
+    await response.json();
   await new Promise<void>((resolve, reject) => {
-    const s = document.createElement("script");
-    s.src = manifest.script;
-    s.onload = () => resolve();
-    s.onerror = reject;
-    document.head.append(s);
+    const script = document.createElement("script");
+    script.src = manifest.script;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error("Engine script unavailable"));
+    document.head.append(script);
   });
   const Engine = (window as unknown as { Engine: EngineClass }).Engine;
   await new Engine({
     executable: manifest.executable,
     canvas,
-    canvasResizePolicy: 2,
+    canvasResizePolicy: 0,
     focusCanvasOnStart: false,
     ensureCrossOriginIsolationHeaders: false,
   }).startGame({ mainPack: manifest.pack });
 }
-void load().catch((e: unknown) => {
-  if (status) status.textContent = `The village could not load. ${String(e)}`;
+update();
+void load().catch(() => {
+  show("loading", true);
+  setText(
+    "loading",
+    "The village could not load. Reload the page to try again. Your night has not started.",
+  );
 });

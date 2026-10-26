@@ -134,7 +134,7 @@ func _draw() -> void:
         var awake: bool = bool(person.get("awake", false))
         if reaction != "" and reaction != "none":
             draw_arc(point, cell * 0.43, -PI * 0.9, PI * 0.7, 20, Color("f3d68d"), 1.5, true)
-        figure(point, COATS[index % COATS.size()], false, awake, reaction != "" and reaction != "none")
+        figure(point, COATS[index % COATS.size()], bool(person.get("lantern", false)), awake, reaction != "" and reaction != "none")
         label(str(person.get("name", "")), point + Vector2(0, -cell * 0.52), Color("e1e5df"), maxi(9, int(cell * 0.35)))
     var player: Dictionary = frame.get("player", {})
     if not player.is_empty():

@@ -14,6 +14,12 @@ import {
 function command(s: State, c: Command) {
   step(s, c);
   if (s.recoveryPending) step(s, { type: "recover", choice: "explain" });
+  while (s.conversationTicksRemaining > 0) step(s);
+  if (c.type === "act")
+    while (s.wellPendingTick !== null) {
+      step(s);
+      if (s.recoveryPending) step(s, { type: "recover", choice: "explain" });
+    }
 }
 function walk(s: State, x: number, y: number) {
   // BFS uses the same public tile geometry the renderer draws.
@@ -49,6 +55,191 @@ function walk(s: State, x: number, y: number) {
 }
 
 describe("authoritative host", () => {
+  test("explaining spends thirty fixed game ticks while quiet resumes immediately", () => {
+    const explained = createGame(13);
+    step(explained, { type: "plan", route: "door" });
+    while (!explained.recoveryPending) step(explained);
+    const quiet: State = JSON.parse(JSON.stringify(explained));
+    step(explained, { type: "recover", choice: "explain" });
+    step(quiet, { type: "recover", choice: "keepquiet" });
+    expect(explained.nightTick).toBe(quiet.nightTick);
+    expect(explained.conversationTicksRemaining).toBe(30);
+    expect(quiet.conversationTicksRemaining).toBe(0);
+    const before = { ...explained.player },
+      started = explained.nightTick;
+    step(explained, { type: "move", dx: 0, dy: -1 });
+    expect(explained.player).toEqual(before);
+    const restored: State = JSON.parse(JSON.stringify(explained));
+    for (let i = 0; i < 29; i++) {
+      step(explained);
+      step(restored);
+    }
+    expect(explained.conversationTicksRemaining).toBe(0);
+    expect(explained.nightTick - started).toBe(30);
+    expect(hash(restored)).toBe(hash(explained));
+    expect(hash(replayRun(exportRun(explained)))).toBe(hash(explained));
+  });
+
+  test("near dawn quiet can deliver while explaining reaches dawn before the action", () => {
+    const base = createGame(13);
+    command(base, { type: "plan", route: "door" });
+    walk(base, 11, 3);
+    while (!base.recoveryPending) step(base);
+    // Isolate the boundary at an unresolved encounter beside the door.
+    base.nightTick = 580;
+    const explained: State = JSON.parse(JSON.stringify(base));
+    const quiet: State = JSON.parse(JSON.stringify(base));
+    step(explained, { type: "recover", choice: "explain" });
+    step(quiet, { type: "recover", choice: "keepquiet" });
+    step(quiet, { type: "act" });
+    while (explained.phase === "night") step(explained, { type: "act" });
+    expect(explained.nightTick).toBe(600);
+    expect(explained.delivered).toBe(0);
+    expect(explained.conversationTicksRemaining).toBe(0);
+    expect(quiet.delivered).toBe(1);
+  });
+
+  test("aid received before either recovery remains delivered through its time cost", () => {
+    for (const choice of ["explain", "keepquiet"] as const) {
+      const s = createGame(13);
+      command(s, { type: "plan", route: "door" });
+      walk(s, 11, 3);
+      step(s, { type: "act" });
+      expect(s.deliveredTonight).toBe(true);
+      step(s, { type: "recover", choice });
+      for (let i = 0; i < 30; i++) step(s);
+      expect(s.deliveredTonight).toBe(true);
+      expect(s.delivered).toBe(1);
+      expect(hash(replayRun(exportRun(s)))).toBe(hash(s));
+    }
+  });
+
+  test("cold rescue cancels a pending well handoff without awarding aid", () => {
+    const s = createGame(13);
+    command(s, { type: "plan", route: "well" });
+    walk(s, 4, 7);
+    step(s, { type: "lantern" });
+    while (s.cold < 399) {
+      if (s.recoveryPending) step(s, { type: "recover", choice: "keepquiet" });
+      else step(s);
+    }
+    step(s, { type: "act" });
+    expect(s.wellPendingTick).not.toBeNull();
+    while (s.phase === "night") step(s);
+    expect(s.status).toContain("cold");
+    expect(s.delivered).toBe(0);
+    expect(s.wellPendingTick).toBeNull();
+    expect(hash(replayRun(exportRun(s)))).toBe(hash(s));
+  });
+
+  test("three missed nights produce the loss ending and deterministic replay", () => {
+    const s = createGame(7);
+    for (let night = 1; night <= 3; night++) {
+      step(s, { type: "plan", route: "door" });
+      while (s.phase === "night") {
+        if (s.recoveryPending)
+          step(s, { type: "recover", choice: "keepquiet" });
+        else step(s);
+      }
+      step(s, { type: "next" });
+    }
+    expect(s.phase).toBe("ended");
+    expect(s.history).toHaveLength(3);
+    expect(s.outcome).toContain("too little help");
+    expect(s.people.every((p) => p.body.alive)).toBe(true);
+    expect(hash(replayRun(exportRun(s)))).toBe(hash(s));
+  });
+
+  test("a well envelope awaiting collection at dawn does not count as aid received", () => {
+    const s = createGame(13);
+    command(s, { type: "plan", route: "well" });
+    walk(s, 4, 7);
+    while (s.nightTick < 599) {
+      if (s.recoveryPending) step(s, { type: "recover", choice: "keepquiet" });
+      else step(s);
+    }
+    step(s, { type: "act" });
+    expect(s.phase).toBe("morning");
+    expect(s.deliveredTonight).toBe(false);
+    expect(s.delivered).toBe(0);
+    expect(s.wellPendingTick).toBeNull();
+    expect(s.morningLines.find((p) => p.id === "samira")?.line).toContain(
+      "need help",
+    );
+    expect(hash(replayRun(exportRun(s)))).toBe(hash(s));
+  });
+
+  test("a lit unavoidable encounter waits for recovery before cold or dawn can end the night", () => {
+    const s = createGame(91);
+    step(s, { type: "plan", route: "well" });
+    step(s, { type: "lantern" });
+    while (!s.recoveryPending) step(s);
+    const nightTick = s.nightTick,
+      cold = s.cold,
+      fact = s.witness?.fact;
+    const view = projection(s);
+    expect(view.people.find((a) => a.id === s.witness?.id)?.lantern).toBe(true);
+    expect(
+      view.tiles.find((t) => t.x === s.player.x && t.y === s.player.y)?.lit,
+    ).toBe(true);
+    for (let i = 0; i < 650; i++) step(s);
+    expect(s.phase).toBe("night");
+    expect(s.nightTick).toBe(nightTick);
+    expect(s.cold).toBe(cold);
+    step(s, { type: "recover", choice: "keepquiet" });
+    while (s.cold < 240) step(s);
+    expect(projection(s).coldWarning).toContain("numb");
+    while (s.phase === "night") step(s);
+    expect(s.status).toContain("cold");
+    expect(s.witness?.fact).toBe(fact);
+    expect(s.witness?.recovered).toBe("keepquiet");
+    expect(hash(replayRun(exportRun(s)))).toBe(hash(s));
+  });
+
+  test("explaining changes HF relationships and earns an immediate well handoff next night", () => {
+    const explained = createGame(13);
+    command(explained, { type: "plan", route: "door" });
+    walk(explained, 11, 3);
+    expect(explained.witness).toBeNull();
+    const quiet: State = JSON.parse(JSON.stringify(explained));
+    for (const [s, choice] of [
+      [explained, "explain"],
+      [quiet, "keepquiet"],
+    ] as const) {
+      step(s, { type: "act" });
+      expect(s.witness?.sight).toBe("leaving");
+      expect(s.witness?.fact).toBe(
+        "I saw Yusuf leave an envelope at the family door.",
+      );
+      command(s, { type: "recover", choice });
+      walk(s, 7, 15);
+      expect(s.witness?.place).toBe("family door");
+      command(s, { type: "act" });
+      command(s, { type: "next" });
+      command(s, { type: "plan", route: "well" });
+      walk(s, 4, 7);
+      step(s, { type: "act" });
+    }
+    const trust = (s: State, id: string) =>
+      s.people
+        .find((p) => p.id === id)
+        ?.social.relationships.find((r) => r.otherId === "yusuf")?.trust ?? 0.5;
+    const witnessId = explained.history[0]?.witness?.id ?? "";
+    expect(trust(explained, witnessId)).toBeGreaterThan(
+      trust(quiet, witnessId),
+    );
+    expect(trust(explained, "idris")).toBeGreaterThan(trust(quiet, "idris"));
+    expect(explained.assistedWell).toBe(true);
+    expect(explained.deliveredTonight).toBe(true);
+    expect(quiet.assistedWell).toBe(false);
+    expect(quiet.deliveredTonight).toBe(false);
+    expect(projection(quiet).handoffRemaining).toBeGreaterThan(0);
+    if (quiet.recoveryPending)
+      step(quiet, { type: "recover", choice: "keepquiet" });
+    while (!quiet.deliveredTonight) step(quiet);
+    expect(quiet.delivered).toBe(explained.delivered);
+    expect(hash(replayRun(exportRun(explained)))).toBe(hash(explained));
+  });
   test("two deliveries meet the primary goal even when the third night misses dawn", () => {
     const s = createGame(4);
     for (let night = 1; night <= 3; night++) {
