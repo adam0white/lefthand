@@ -26,7 +26,7 @@ A finite time window, two routes, lighting, seed-varied witness routines and one
 
 Godot 4.7.2 Compatibility single-threaded web renderer, TypeScript 7.0.2 strict with noUncheckedIndexedAccess, HF exactly 3.2.0, Node 26.12.0, pnpm 12.14.0 without hoisting. Godot holds only a drawing projection. Host fixed 10 Hz ticks and stamped input log own movement, light, weather, time and full HF Persons and RNGs. The state hash includes these. Replaying includes evening and recovery choices. The owner wants Godot learnings; this is sufficient reason to choose it. The spike did not prove deployed gzip packaging or physical phone performance. Brain consultation found no index at ~/code/brain/promoted/index.md.
 
-HF owns actors: decisions, witness memory, belief reception, relationship effects and waking. Game rules own space, cold, deadlines and delivery. No HF implementation is copied into the game. The existing lab client supplies default-on recording, the first-visit notice and feedback with I'm stopping / I'm confused. Tools and exports require ?lab=1.
+HF owns actors: decisions, witness memory, belief reception, relationship effects and waking. Game rules own space, cold, deadlines and delivery. No HF implementation is copied into the game. The immutable lab-client0.4.12 artifact supplies default-on recording, the first-visit notice and feedback with I'm stopping / I'm confused. Tools and exports require ?lab=1.
 
 ## Cast
 
@@ -37,6 +37,8 @@ Canonical Yusuf (34), Idris (41), Samira (29), Danyal (52, Christian well keeper
 A full-width Godot village sits between a short spoken line and thumb-sized directional controls. Evening and morning use plain DOM with no dashboard. Keyboard arrows/WASD, lantern and action match touch controls. Desktop adds map space rather than panels. Menus pause play. Hidden tabs pause play.
 
 ## Deferred
+
+- Separate nearby person and well labels on narrow screens: review2026-11-03 after the first panel; the current crop shows overlap, while the route and witness response remain readable.
 
 - Linux WebKit framebuffer presentation: investigate 2026-11-03 with the retained bounded blit diagnostic; Godot4.7.2 stock-template errors remain unresolved. macOS WebKit is the Safari-oriented CI platform, consistent with [Playwright guidance](https://playwright.dev/docs/browsers#webkit).
 
