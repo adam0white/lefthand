@@ -26,6 +26,12 @@ const snapshot = (page: Page) =>
 const advance = (page: Page, milliseconds = 120) =>
   page.clock.runFor(milliseconds);
 
+// Skip intermediate rendered frames while retaining one normal 10 Hz host tick
+// per 100ms clock step. This keeps a three-night wait bounded on software GPUs.
+async function waitTicks(page: Page, ticks: number) {
+  for (let tick = 0; tick < ticks; tick++) await page.clock.fastForward(100);
+}
+
 async function recover(page: Page) {
   if (!(await snapshot(page)).recoveryPending) return;
   await expect(page.locator("#recovery")).toBeVisible();
@@ -178,9 +184,9 @@ for (const outcome of ["win", "loss"] as const) {
         await advance(page);
       } else {
         // The forced encounter stops the clock. Resolve it before waiting for dawn.
-        await advance(page, 12_000);
+        await waitTicks(page, 120);
         await recover(page);
-        await advance(page, 65_000);
+        await waitTicks(page, 650);
       }
       await expect(page.locator("#morning")).toBeVisible();
       console.log("Morning", night, outcome);

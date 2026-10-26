@@ -20,7 +20,7 @@ A finite time window, two routes, lighting, seed-varied witness routines and one
 6. Concealed charity research in HF precedes any sourced screen wording. Qur'an 2:271 praises open giving too. The seven-shaded saying is Yusuf's understanding. No ruling or divine accounting is computed.
 7. First release is a hello scene using compressed wasm and static asset headers. Actual edge execution failed for the pure-static gzip header approach: browsers still received compressed bytes after transport decoding. A Worker maps the wasm URL to opaque gzip storage and uses encodeBody: manual, preventing another compression layer. The fallback hello build610a5d4 executed at the edge in real Chromium and WebKit. Chromium cold load at360×690 with180KB/s,562.5ms latency and4×CPU throttling reached its first submitted frame in61.25seconds; WebKit unthrottled took1.72seconds. These are shared-machine browser observations, not physical-device benchmarks. The wasm starts at page load while plain DOM evening choices enter the same log. Throttled phone cold-load time is a finding, not a gate.
 8. Morning remains one plain line per person.
-9. CI installs and caches Godot 4.7.2 plus matching web templates, then lint, strict typecheck, tests, export/build and Chromium/WebKit at 360x690 and 1280x800. Deploy only the exact green commit. Report setup time and pain points.
+9. CI installs and caches Godot 4.7.2 plus matching web templates, then lint, strict typecheck, tests, export/build and Chromium on Linux and WebKit on macOS at 360x690 and 1280x800. Linux WebKit reports a same-image framebuffer blit error with the stock template; this remains an explicitly unresolved platform limit. No console errors are filtered in the supported CI jobs. Deploy only the exact green commit. Report setup time and pain points.
 
 ## Technology and ownership
 
@@ -37,6 +37,8 @@ Canonical Yusuf (34), Idris (41), Samira (29), Danyal (52, Christian well keeper
 A full-width Godot village sits between a short spoken line and thumb-sized directional controls. Evening and morning use plain DOM with no dashboard. Keyboard arrows/WASD, lantern and action match touch controls. Desktop adds map space rather than panels. Menus pause play. Hidden tabs pause play.
 
 ## Deferred
+
+- Linux WebKit framebuffer presentation: investigate 2026-11-03 with the retained bounded blit diagnostic; Godot4.7.2 stock-template errors remain unresolved. macOS WebKit is the Safari-oriented CI platform, consistent with [Playwright guidance](https://playwright.dev/docs/browsers#webkit).
 
 - Smooth light with polygon-shared visibility: 2026-11-10; first measure the grid presentation.
 - Footprints, weather erasing tracks and go-betweens: 2026-11-14; keep this run bounded.
