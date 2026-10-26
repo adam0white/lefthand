@@ -188,7 +188,7 @@ strong {
   inset: 0;
   z-index: 5;
   overflow: auto;
-  background: #101c29f7;
+  background: #101c29;
   padding: 24px max(24px, calc((100vw - 700px) / 2));
   font-family: system-ui, sans-serif;
 }
@@ -308,5 +308,51 @@ form .choices {
 @media (prefers-reduced-motion: reduce) {
   * {
     scroll-behavior: auto;
+  }
+}
+
+@media (min-width: 481px) {
+  [data-phase="evening"] canvas {
+    height: clamp(260px, calc(100dvh - 410px), 480px);
+  }
+  [data-phase="night"] canvas {
+    height: clamp(260px, calc(100dvh - 430px), 480px);
+  }
+}
+@media (min-width: 900px) {
+  [data-phase="evening"] main {
+    max-width: 1040px;
+    display: grid;
+    grid-template-columns: 300px minmax(0, 1fr);
+    column-gap: 24px;
+    grid-template-areas:
+      "header header"
+      "notice notice"
+      "chapter chapter"
+      "status status"
+      "evening village";
+  }
+  [data-phase="evening"] header {
+    grid-area: header;
+  }
+  [data-phase="evening"] #recording-notice {
+    grid-area: notice;
+  }
+  [data-phase="evening"] #chapter {
+    grid-area: chapter;
+  }
+  [data-phase="evening"] #status {
+    grid-area: status;
+  }
+  [data-phase="evening"] #evening {
+    grid-area: evening;
+  }
+  [data-phase="evening"] .village {
+    grid-area: village;
+    align-self: start;
+    margin-top: 10px;
+  }
+  [data-phase="evening"] canvas {
+    height: clamp(300px, calc(100dvh - 320px), 480px);
   }
 }

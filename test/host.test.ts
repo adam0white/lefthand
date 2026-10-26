@@ -58,7 +58,8 @@ describe("authoritative host", () => {
   test("explaining spends thirty fixed game ticks while quiet resumes immediately", () => {
     const explained = createGame(13);
     step(explained, { type: "plan", route: "door" });
-    while (!explained.recoveryPending) step(explained);
+    walk(explained, 11, 3);
+    step(explained, { type: "act" });
     const quiet: State = JSON.parse(JSON.stringify(explained));
     step(explained, { type: "recover", choice: "explain" });
     step(quiet, { type: "recover", choice: "keepquiet" });
@@ -84,7 +85,10 @@ describe("authoritative host", () => {
     const base = createGame(13);
     command(base, { type: "plan", route: "door" });
     walk(base, 11, 3);
-    while (!base.recoveryPending) step(base);
+    step(base, { type: "act" });
+    base.delivered = 0;
+    base.deliveredTonight = false;
+    base.envelopePlaced = false;
     // Isolate the boundary at an unresolved encounter beside the door.
     base.nightTick = 580;
     const explained: State = JSON.parse(JSON.stringify(base));
@@ -170,10 +174,11 @@ describe("authoritative host", () => {
   });
 
   test("a lit unavoidable encounter waits for recovery before cold or dawn can end the night", () => {
-    const s = createGame(91);
-    step(s, { type: "plan", route: "well" });
+    const s = createGame(13);
+    step(s, { type: "plan", route: "door" });
     step(s, { type: "lantern" });
-    while (!s.recoveryPending) step(s);
+    walk(s, 11, 3);
+    step(s, { type: "act" });
     const nightTick = s.nightTick,
       cold = s.cold,
       fact = s.witness?.fact;
@@ -196,7 +201,7 @@ describe("authoritative host", () => {
     expect(hash(replayRun(exportRun(s)))).toBe(hash(s));
   });
 
-  test("explaining changes HF relationships and earns an immediate well handoff next night", () => {
+  test("public delivery changes HF relationships and delays the next well handoff", () => {
     const explained = createGame(13);
     command(explained, { type: "plan", route: "door" });
     walk(explained, 11, 3);
@@ -228,16 +233,17 @@ describe("authoritative host", () => {
     expect(trust(explained, witnessId)).toBeGreaterThan(
       trust(quiet, witnessId),
     );
-    expect(trust(explained, "idris")).toBeGreaterThan(trust(quiet, "idris"));
+    expect(trust(explained, "samira")).toBeLessThan(0.5);
+    expect(explained.exposureNights).toBe(1);
     expect(explained.assistedWell).toBe(true);
-    expect(explained.deliveredTonight).toBe(true);
+    expect(explained.deliveredTonight).toBe(false);
     expect(quiet.assistedWell).toBe(false);
     expect(quiet.deliveredTonight).toBe(false);
     expect(projection(quiet).handoffRemaining).toBeGreaterThan(0);
     if (quiet.recoveryPending)
       step(quiet, { type: "recover", choice: "keepquiet" });
     while (!quiet.deliveredTonight) step(quiet);
-    expect(quiet.delivered).toBe(explained.delivered);
+    expect(quiet.delivered).toBe(explained.delivered + 1);
     expect(hash(replayRun(exportRun(explained)))).toBe(hash(explained));
   });
   test("two deliveries meet the primary goal even when the third night misses dawn", () => {
@@ -297,8 +303,10 @@ describe("authoritative host", () => {
   });
 
   test("active-night replay and JSON continuation retain people, RNG and authored witness facts", () => {
-    const s = createGame(91);
-    command(s, { type: "plan", route: "well" });
+    const s = createGame(13);
+    command(s, { type: "plan", route: "door" });
+    walk(s, 11, 3);
+    step(s, { type: "act" });
     for (let i = 0; i < 130; i++) step(s, { type: "wait" });
     expect(s.recoveryPending).toBe(true);
     expect(projection(s).people.some((p) => p.reaction.length > 0)).toBe(true);
@@ -365,4 +373,65 @@ describe("authoritative host", () => {
     step(a, { type: "move", dx: 0, dy: -1 });
     expect(a.player.y).toBe(3);
   });
+});
+
+describe("iteration two consequences", () => {
+  test("waiting at home never invents a sighting before the first move", () => {
+    for (let seed = 1; seed <= 12; seed++) {
+      const s = createGame(seed);
+      step(s, { type: "plan", route: "well" });
+      for (let i = 0; i < 150; i++) step(s);
+      expect(s.witness).toBeNull();
+      expect(s.recoveryPending).toBe(false);
+      step(s, { type: "move", dx: 0, dy: -1 });
+      expect(s.witness).toBeNull();
+      expect(hash(replayRun(exportRun(s)))).toBe(hash(s));
+    }
+  });
+  test("a rescue leaves a shorter next night and no stale cold warning", () => {
+    const s = createGame(13);
+    command(s, { type: "plan", route: "well" });
+    command(s, { type: "lantern" });
+    for (let i = 0; i < 1000 && s.phase === "night"; i++) {
+      if (s.recoveryPending) step(s, { type: "recover", choice: "keepquiet" });
+      else step(s);
+    }
+    expect(projection(s).coldWarning).toBe("");
+    command(s, { type: "next" });
+    command(s, { type: "plan", route: "well" });
+    expect(projection(s).nightLimit).toBe(540);
+    expect(s.status).toContain("rescue");
+    expect(hash(replayRun(exportRun(s)))).toBe(hash(s));
+  });
+});
+
+test("a prior quiet witness cannot hide a later direct door handoff", async () => {
+  const { shortestPath } = await import("../scripts/policies");
+  const s = createGame(1);
+  const quiet = () => {
+    if (s.recoveryPending) step(s, { type: "recover", choice: "keepquiet" });
+  };
+  const travel = (target: { x: number; y: number }) => {
+    for (const c of shortestPath(s, target)) {
+      quiet();
+      step(s, c);
+    }
+  };
+  step(s, { type: "plan", route: "door" });
+  travel({ x: 4, y: 7 });
+  for (let i = 0; i < 30 && !s.witness; i++) step(s);
+  quiet();
+  expect(s.witness?.id).toBe("danyal");
+  expect(s.witness?.sight).toBe("carrying");
+  travel({ x: 11, y: 3 });
+  step(s, { type: "act" });
+  quiet();
+  travel({ x: 7, y: 15 });
+  step(s, { type: "act" });
+  expect(s.delivered).toBe(1);
+  expect(s.exposureNights).toBe(1);
+  expect(s.morningLines.find((p) => p.id === "samira")?.line).toContain(
+    "trust Yusuf less",
+  );
+  expect(hash(replayRun(exportRun(s)))).toBe(hash(s));
 });

@@ -9,7 +9,6 @@ import {
   createGame,
   exportRun,
   hash,
-  NIGHT_LIMIT,
   projection,
   type Run,
   replayRun,
@@ -30,7 +29,7 @@ app.innerHTML = `<main>
 <p id="chapter" class="chapter"></p><p id="status" role="status"></p><p id="cold-warning" role="status" hidden></p>
 <section id="evening" aria-label="At Yusuf’s table"><p id="table-line">At the table, Yusuf addresses an envelope to Idris and Samira. They need food and fuel.</p><p>Where will you leave it?</p><div class="choices"><button id="route-door">Their door · direct</button><button id="route-well">Well box · wait for handoff</button></div><p class="source">Yusuf understands concealed voluntary giving as preferable; open giving is also good. <a href="https://quran.com/2/271" target="_blank" rel="noopener">Qur’an 2:271</a> · <a href="https://sunnah.com/bukhari:1423" target="_blank" rel="noopener">Bukhari 1423</a></p></section>
 <div class="village"><canvas id="canvas" tabindex="0" aria-label="Snowy village. Move with arrow keys or WASD, or use the direction buttons."></canvas><p id="loading">Lighting the village… You can choose a route now.</p></div>
-<section id="night" aria-label="Delivery controls" hidden><div id="recovery" hidden><p>A neighbour has seen you. Explain to coordinate later help, spending 3 seconds on the dawn clock, or keep quiet and preserve your privacy.</p><div class="choices"><button id="explain">Explain</button><button id="quiet">Keep quiet</button></div></div><div id="walking"><div class="action-row"><button id="lantern">Lantern on</button><button id="act">Leave envelope</button></div><div class="directions" aria-label="Move"><button data-move="0,-1" class="up" aria-label="Move north">↑</button><button data-move="-1,0" class="left" aria-label="Move west">←</button><button data-move="0,1" class="down" aria-label="Move south">↓</button><button data-move="1,0" class="right" aria-label="Move east">→</button></div><p class="hint">Arrows / WASD move · L lantern · Enter deliver or return home</p></div></section>
+<section id="night" aria-label="Delivery controls" hidden><div id="recovery" hidden><p>A neighbour has seen you. Explain to coordinate later help, spending 3 seconds on the dawn clock, or keep quiet and preserve your privacy.</p><div class="choices"><button id="explain">Explain</button><button id="quiet">Keep quiet</button></div></div><div id="walking"><div class="action-row"><button id="lantern">Lantern lit · hide (L)</button><button id="act">Leave envelope</button></div><div class="directions" aria-label="Move"><button data-move="0,-1" class="up" aria-label="Move north">↑</button><button data-move="-1,0" class="left" aria-label="Move west">←</button><button data-move="0,1" class="down" aria-label="Move south">↓</button><button data-move="1,0" class="right" aria-label="Move east">→</button></div><p class="hint">Arrows / WASD move · L lantern · Enter deliver or return home</p></div></section>
 <section id="morning" aria-label="Morning accounts" hidden><div id="morning-lines"></div><button id="next">Next evening</button></section>
 <section id="ending" hidden><h2 id="ending-title"></h2><p id="ending-line"></p><button id="again">Play again</button></section>
 <section id="menu" class="menu" aria-label="Menu" hidden><div class="menu-top"><h2>Paused</h2><button id="menu-close">Return to play</button></div><p><label><input id="recording" type="checkbox"> Recording</label> · <a href="${PRIVACY_URL}" target="_blank" rel="noopener">Privacy</a> · <a href="/third-party-notices.txt" target="_blank" rel="noopener">Licenses</a></p><div class="menu-actions"><button id="feedback-stop">I’m stopping</button><button id="feedback-confused">I’m confused</button><button id="download">Download run</button><button id="verify">Verify replay</button><button id="fullscreen">Fullscreen</button><button id="new">New game</button><a id="all-games" href="https://human.adamwhite.work/">All games</a></div><div id="new-confirm" hidden><p>End this run and prepare a new envelope?</p><button id="new-yes">Start new game</button><button id="new-no">Keep this run</button></div><form id="feedback" hidden><label for="note">Add a note, if you like</label><textarea id="note" rows="3" maxlength="4000"></textarea><label><input id="share-run" type="checkbox"> Share this run with the note (turns recording on)</label><div class="choices"><button type="submit" id="feedback-send">Send feedback</button><button type="button" id="feedback-cancel">Cancel</button></div></form><p id="menu-status" role="status"></p></section>
@@ -91,6 +90,13 @@ function enqueue(command: Command) {
 function update() {
   const phase = state.phase;
   const view = projection(state);
+  app?.setAttribute("data-phase", phase);
+  show("status", phase === "evening" || phase === "night");
+  const dawnSeconds = Math.max(
+    0,
+    Math.ceil((view.nightLimit - state.nightTick) / 10),
+  );
+  const conversationSeconds = Math.ceil(state.conversationTicksRemaining / 10);
   show("evening", phase === "evening");
   show("night", phase === "night");
   show("morning", phase === "morning");
@@ -102,7 +108,7 @@ function update() {
     phase === "evening"
       ? `Evening ${state.night} · At the table`
       : phase === "night"
-        ? `Night ${state.night} · ${Math.ceil((NIGHT_LIMIT - state.nightTick) / 10)} seconds until dawn`
+        ? `Night ${state.night} · ${dawnSeconds} ${dawnSeconds === 1 ? "second" : "seconds"} until dawn`
         : phase === "morning"
           ? `Morning ${state.night}`
           : "After three nights",
@@ -110,14 +116,20 @@ function update() {
   setText(
     "status",
     state.conversationTicksRemaining > 0
-      ? `Yusuf explains the errand. ${Math.ceil(state.conversationTicksRemaining / 10)} seconds of conversation remain; dawn is getting closer.`
+      ? `Yusuf explains the errand. ${conversationSeconds} ${conversationSeconds === 1 ? "second of conversation remains" : "seconds of conversation remain"}; dawn is getting closer.`
       : state.status,
   );
   for (const button of document.querySelectorAll<HTMLButtonElement>(
     "#walking button",
   ))
     button.disabled = state.conversationTicksRemaining > 0;
-  setText("lantern", `Lantern ${state.player.lantern ? "on" : "off"}`);
+  setText(
+    "lantern",
+    state.player.lantern
+      ? "Lantern lit · hide (L)"
+      : "Lantern hidden · light (L)",
+  );
+  element("lantern").setAttribute("aria-pressed", String(state.player.lantern));
   setText(
     "act",
     state.deliveredTonight
@@ -126,14 +138,14 @@ function update() {
         ? `Handoff · ${Math.ceil(view.handoffRemaining / 10)}s`
         : "Leave envelope",
   );
-  show("cold-warning", Boolean(view.coldWarning));
+  show("cold-warning", phase === "night" && Boolean(view.coldWarning));
   setText("cold-warning", view.coldWarning || "");
   setText("next", state.night === 3 ? "After three nights" : "Next evening");
   setText(
     "table-line",
     state.night === 1
       ? "At the table, Yusuf addresses an envelope to Idris and Samira. They need food and fuel."
-      : "At the table, Yusuf prepares another envelope for Idris and Samira.",
+      : `At the table, Yusuf prepares another envelope.${state.exposureNights ? ` Samira asks for a private handoff after the village talk; well collection now takes ${(state.history.some((h) => h.delivered && h.witness?.recovered === "explain") ? 0 : 3) + state.exposureNights * 3} seconds. The door is immediate, but exposes the delivery.` : " Idris and Samira still need food and fuel."}${state.rescues ? ` Yusuf still owes the neighbours work after his rescue. Exhaustion leaves ${view.nightLimit / 10} seconds for tonight’s walk.` : ""}`,
   );
   const key = `${state.night}:${phase}`;
   if (phase === "morning" && morningKey !== key) {
@@ -142,7 +154,7 @@ function update() {
     for (const person of state.morningLines) {
       const p = document.createElement("p");
       const name = document.createElement("strong");
-      name.textContent = `${person.name}: `;
+      name.textContent = person.id === "yusuf" ? "" : `${person.name}: `;
       p.append(name, person.line);
       lines.append(p);
     }
@@ -152,7 +164,11 @@ function update() {
     setText(
       "ending-title",
       state.delivered >= 2
-        ? "The help reached them"
+        ? state.rescues
+          ? "Help reached them; Yusuf needs care"
+          : state.exposureNights >= 2
+            ? "Help reached them; trust was lost"
+            : "The help reached them"
         : "The household needs more help",
     );
     setText("ending-line", state.outcome);
@@ -270,12 +286,15 @@ setInterval(() => {
     lastStep = now;
     return;
   }
-  const delay = state.recoveryPending ? 300 : 100;
-  if (now - lastStep < delay) return;
-  lastStep = now;
-  if (state.phase === "night" || queue.length) {
-    step(state, queue.shift());
-    update();
+  // Retain timer overshoot so ten host ticks take one displayed second.
+  // Bound catch-up after a stalled frame; menus and hidden tabs reset above.
+  lastStep = Math.max(lastStep, now - 1_000);
+  while (now - lastStep >= 100) {
+    lastStep += 100;
+    if (state.phase === "night" || queue.length) {
+      step(state, queue.shift());
+      update();
+    }
   }
 }, 20);
 document.addEventListener("visibilitychange", () => {
@@ -297,41 +316,47 @@ for (const button of document.querySelectorAll<HTMLButtonElement>(
     const [dx = 0, dy = 0] = (button.dataset.move ?? "").split(",").map(Number);
     enqueue({ type: "move", dx, dy });
   };
-document.addEventListener("keydown", (event) => {
-  if (
-    event.target instanceof HTMLInputElement ||
-    event.target instanceof HTMLTextAreaElement
-  )
-    return;
-  if (event.key === "Escape") {
-    setMenu(!menuOpen);
-    return;
-  }
-  if (menuOpen || state.phase !== "night" || document.hidden) return;
-  const directions: Record<string, [number, number]> = {
-    ArrowUp: [0, -1],
-    w: [0, -1],
-    ArrowDown: [0, 1],
-    s: [0, 1],
-    ArrowLeft: [-1, 0],
-    a: [-1, 0],
-    ArrowRight: [1, 0],
-    d: [1, 0],
-  };
-  const direction = directions[event.key];
-  if (direction) {
-    event.preventDefault();
-    enqueue({ type: "move", dx: direction[0], dy: direction[1] });
-  } else if (event.key.toLowerCase() === "l") enqueue({ type: "lantern" });
-  else if (
-    (event.key === "Enter" || event.key === " ") &&
-    !(event.target instanceof HTMLButtonElement) &&
-    !(event.target instanceof HTMLAnchorElement)
-  ) {
-    event.preventDefault();
-    enqueue({ type: "act" });
-  }
-});
+document.addEventListener(
+  "keydown",
+  (event) => {
+    if (
+      event.target instanceof HTMLInputElement ||
+      event.target instanceof HTMLTextAreaElement
+    )
+      return;
+    if (event.key === "Escape") {
+      setMenu(!menuOpen);
+      return;
+    }
+    // Godot may focus the canvas; capture arrow defaults before its handlers.
+    if (event.key.startsWith("Arrow") && !menuOpen) event.preventDefault();
+    if (menuOpen || state.phase !== "night" || document.hidden) return;
+    const directions: Record<string, [number, number]> = {
+      ArrowUp: [0, -1],
+      w: [0, -1],
+      ArrowDown: [0, 1],
+      s: [0, 1],
+      ArrowLeft: [-1, 0],
+      a: [-1, 0],
+      ArrowRight: [1, 0],
+      d: [1, 0],
+    };
+    const direction = directions[event.key];
+    if (direction) {
+      event.preventDefault();
+      enqueue({ type: "move", dx: direction[0], dy: direction[1] });
+    } else if (event.key.toLowerCase() === "l") enqueue({ type: "lantern" });
+    else if (
+      (event.key === "Enter" || event.key === " ") &&
+      !(event.target instanceof HTMLButtonElement) &&
+      !(event.target instanceof HTMLAnchorElement)
+    ) {
+      event.preventDefault();
+      enqueue({ type: "act" });
+    }
+  },
+  { capture: true },
+);
 element("menu-open").onclick = () => setMenu(true);
 element("menu-close").onclick = () => setMenu(false);
 element("notice-close").onclick = () => show("recording-notice", false);

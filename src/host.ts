@@ -44,6 +44,11 @@ export type State = {
   rng: number;
   tick: number;
   nightTick: number;
+  hasMoved: boolean;
+  exposureNights: number;
+  directHandoffTonight: boolean;
+  rescues: number;
+  ending: "" | "sheltered" | "exposed" | "rescued" | "unsupported";
   conversationTicksRemaining: number;
   night: number;
   phase: "evening" | "night" | "morning" | "ended";
@@ -66,6 +71,8 @@ export type State = {
     night: number;
     delivered: boolean;
     witness: Witness | null;
+    exposed: boolean;
+    rescued: boolean;
     lines: State["morningLines"];
     reason: string;
   }[];
@@ -179,6 +186,11 @@ export function createGame(seed = 1): State {
     rng: seed,
     tick: 0,
     nightTick: 0,
+    hasMoved: false,
+    exposureNights: 0,
+    directHandoffTonight: false,
+    rescues: 0,
+    ending: "",
     conversationTicksRemaining: 0,
     night: 1,
     phase: "evening",
@@ -242,9 +254,11 @@ function chooseRoutines(s: State) {
 function startNight(s: State) {
   s.phase = "night";
   s.nightTick = 0;
+  s.hasMoved = false;
   s.player = { ...HOME, lantern: true };
   s.cold = 0;
   s.deliveredTonight = false;
+  s.directHandoffTonight = false;
   s.envelopePlaced = false;
   s.wellPendingTick = null;
   s.assistedWell = s.history.some(
@@ -269,7 +283,7 @@ function startNight(s: State) {
     samira.body.asleep = true;
   }
   chooseRoutines(s);
-  s.status = `Night ${s.night}: ${s.route === "door" ? "the longer walk to the family door gives an immediate handoff" : s.assistedWell ? "your trusted neighbour will collect the labelled well envelope immediately" : "the shorter well route needs a 30-second wait for the keeper to collect the labelled envelope"}. Return home after delivery.`;
+  s.status = `Night ${s.night}: ${s.route === "door" ? "the longer walk to the family door gives an immediate handoff" : `the shorter well route needs a ${wellDelay(s) / 10}-second wait for collection${s.assistedWell ? "; your trusted neighbour saves 3 seconds" : ""}`}. Return home after delivery.${s.exposureNights ? " Samira no longer trusts the public well handoff; the keeper must wait longer for her." : ""}${s.rescues ? ` Your rescue left you exhausted: tonight you have ${nightLimit(s) / 10} seconds before you must rest.` : ""}`;
 }
 function placeName(s: State): string {
   return distance(s.player, WELL) <= 1
@@ -306,7 +320,9 @@ function encounter(
   const place = placeName(s),
     fact = `I saw Yusuf ${sight === "leaving" ? "leave an envelope" : sight === "carrying" ? "carrying an envelope" : "empty-handed"} at the ${place}.`;
   const explanation =
-    id === "tariq" ? "I think Yusuf is helping Idris and Samira." : "";
+    id === "tariq" && sight !== "empty-handed"
+      ? "I think Yusuf is helping Idris and Samira."
+      : "";
   s.witness = { id, place, fact, explanation, recovered: null, sight };
   s.recoveryPending = true;
   perceive(p, [
@@ -333,8 +349,10 @@ function encounter(
       ? sight === "empty-handed"
         ? "Danyal raises his lantern. “I saw you on the lane.”"
         : "Danyal raises his lantern. “I saw your envelope.”"
-      : "Tariq turns. “Is that for Idris?”";
-  s.status = `${a.reaction} Explain the practical delivery, or keep quiet. The night clock waits for your reply. Explaining spends 30 game seconds (3 seconds on the dawn clock); keeping quiet spends none.`;
+      : sight === "empty-handed"
+        ? "Tariq turns. “Out late, Yusuf?”"
+        : "Tariq turns. “Is that for Idris?”";
+  s.status = `${a.reaction} Explain the practical delivery, or keep quiet. The night clock waits for your reply. Explaining spends 3 seconds on the dawn clock; keeping quiet spends none.`;
 }
 function recover(s: State, choice: "explain" | "keepquiet") {
   if (!s.recoveryPending || !s.witness) return;
@@ -375,21 +393,34 @@ function recover(s: State, choice: "explain" | "keepquiet") {
   }
   s.status =
     choice === "explain"
-      ? "You spend 30 game seconds naming the recipients and coordinating delivery. If this envelope reaches them, your neighbour can collect tomorrow’s well envelope immediately."
+      ? "You spend 3 seconds naming the recipients and coordinating delivery. Your neighbour knows how to help, but naming the family may cost their trust and delay later well handoffs."
       : "You keep quiet. The witness keeps their own account.";
 }
-function morning(s: State, reason: string) {
-  if (!s.witness || s.recoveryPending)
-    throw new Error("Morning requires a resolved witness encounter");
+function wellDelay(s: State) {
+  return (s.assistedWell ? 0 : 30) + s.exposureNights * 30;
+}
+function nightLimit(s: State) {
+  return NIGHT_LIMIT - s.rescues * 60;
+}
+function morning(s: State, reason: string, rescued = false) {
+  if (s.recoveryPending)
+    throw new Error("Morning requires a resolved encounter");
   // A scheduled handoff is not receipt. The delivery window has closed.
   s.wellPendingTick = null;
   s.conversationTicksRemaining = 0;
-  const w = required(s.witness);
-  const report =
-    w.fact +
-    (w.explanation
-      ? ` ${w.explanation}`
-      : " I cannot say who the gift was for.");
+  const w = s.witness;
+  const exposed =
+    s.directHandoffTonight ||
+    (!!w &&
+      (w.recovered === "explain" || w.sight === "leaving" || !!w.explanation));
+  if (exposed) s.exposureNights++;
+  if (rescued) s.rescues++;
+  const report = w
+    ? w.fact +
+      (w.explanation
+        ? ` ${w.explanation}`
+        : " I cannot say who the gift was for.")
+    : "I did not see Yusuf last night.";
   for (const id of ["idris", "samira"]) {
     const p = required(s.people.find((p) => p.id === id));
     perceive(p, [
@@ -397,13 +428,30 @@ function morning(s: State, reason: string) {
         at: p.now,
         channel: "told",
         kind: "morning-account",
-        actorId: w.id,
+        actorId: w?.id ?? "danyal",
         targetId: id,
         salience: 0.9,
         summary: report,
       },
     ]);
-    if (s.deliveredTonight && w.recovered === "explain")
+    if (exposed)
+      perceive(p, [
+        {
+          at: p.now,
+          channel: "social",
+          kind: "harm",
+          actorId: "yusuf",
+          targetId: id,
+          near: true,
+          valence: -0.8,
+          salience: 1,
+          summary:
+            id === "idris"
+              ? "The village is discussing our need. I wanted to choose whom to tell."
+              : "Yusuf let our household become village talk. I need a more private handoff next time.",
+        },
+      ]);
+    if (s.deliveredTonight && w?.recovered === "explain")
       perceive(p, [
         {
           at: p.now,
@@ -427,22 +475,30 @@ function morning(s: State, reason: string) {
         ? reason
         : id === "idris"
           ? s.deliveredTonight
-            ? w.recovered === "explain"
-              ? "Yusuf helped us. I will accept it and thank him; we will use it for food and fuel."
+            ? exposed
+              ? s.exposureNights >= 2
+                ? "The help is ours, but everyone discusses our need now. I will not discuss it with Yusuf."
+                : "I accept the help, but I wanted to choose who knew we needed it."
               : "The envelope reached our household. We will use it for food and fuel."
             : "No envelope reached us last night. We still need food and fuel."
           : id === "samira"
             ? s.deliveredTonight
-              ? "I brought the envelope inside. Knowing the giver does not take the help away."
+              ? exposed
+                ? "The help reached us. I trust Yusuf less with our privacy; next time the keeper must wait until I can come alone."
+                : "I brought the envelope inside. Our need has stayed private."
               : "We managed this morning. We need help before the next one."
-            : id === w.id
+            : id === w?.id
               ? report
-              : "I did not see the delivery; I cannot name the giver.",
+              : exposed
+                ? "People are talking about Yusuf helping Idris and Samira."
+                : "I did not see the delivery; I cannot name the giver.",
   }));
   s.history.push({
     night: s.night,
     delivered: s.deliveredTonight,
     witness: copy(w),
+    exposed,
+    rescued,
     lines: copy(s.morningLines),
     reason,
   });
@@ -452,6 +508,22 @@ function morning(s: State, reason: string) {
 function receiveAid(s: State) {
   if (s.deliveredTonight) return;
   s.deliveredTonight = true;
+  // Samira sees Yusuf at her own door even if a neighbour saw him earlier.
+  s.directHandoffTonight = s.route === "door";
+  if (s.directHandoffTonight)
+    perceive(required(s.people[2]), [
+      {
+        at: required(s.people[2]).now,
+        channel: "saw",
+        kind: "door-handoff",
+        actorId: "yusuf",
+        targetId: "samira",
+        placeId: "family-home",
+        salience: 1,
+        summary: "Yusuf handed our envelope to me at our door.",
+        claims: [{ prop: "gift-giver:yusuf", value: true, confidence: 1 }],
+      },
+    ]);
   s.delivered++;
   s.wellPendingTick = null;
   const p = required(s.people[2]);
@@ -503,12 +575,16 @@ function deliver(s: State) {
     return;
   }
   s.envelopePlaced = true;
-  if (s.route === "well" && !s.assistedWell) {
-    s.wellPendingTick = s.nightTick + 30;
-    s.status =
-      "The labelled envelope is safe in the well box. The keeper will collect it in 30 game seconds; you may start walking home.";
+  if (s.route === "well" && wellDelay(s) > 0) {
+    s.wellPendingTick = s.nightTick + wellDelay(s);
+    s.status = `The labelled envelope is safe in the well box. Collection takes ${wellDelay(s) / 10} seconds on the dawn clock${s.exposureNights ? "; Samira waits for a private handoff after the village talk" : ""}. You may start walking home.`;
   } else receiveAid(s);
-  if (!s.witness) encounter(s, undefined, "leaving");
+  if (!s.witness)
+    encounter(
+      s,
+      undefined,
+      s.player.lantern || s.route === "door" ? "leaving" : "empty-handed",
+    );
 }
 function normalized(c: Command): Command {
   if (c.type === "move") {
@@ -551,6 +627,23 @@ export function step(s: State, command?: Command): State {
         s.delivered >= 2
           ? "The household has food and fuel: your help reached them on at least two nights."
           : "The household received too little help. They need another source of support.";
+      s.ending =
+        s.delivered < 2
+          ? "unsupported"
+          : s.rescues
+            ? "rescued"
+            : s.exposureNights >= 2
+              ? "exposed"
+              : "sheltered";
+      s.outcome +=
+        s.exposureNights >= 2
+          ? " Repeated exposure made their need village talk. Idris keeps his distance; Samira no longer trusts Yusuf with a private delivery. Future help must be arranged with them directly."
+          : s.exposureNights
+            ? " One night became village talk. Idris wanted to choose who knew; Samira now asks for a private handoff."
+            : " Their need stayed private. Idris keeps his dignity; Samira trusts the quiet arrangement.";
+      s.outcome += s.rescues
+        ? ` Yusuf needed ${s.rescues === 1 ? "one rescue" : `${s.rescues} rescues`}. He remains exhausted and owes the neighbours the work they missed bringing him home; he cannot keep making these walks alone.`
+        : " Yusuf returned safely each night.";
       s.status = s.outcome;
     } else {
       s.night++;
@@ -563,7 +656,10 @@ export function step(s: State, command?: Command): State {
     else if (!s.recoveryPending) {
       if (command.type === "move") {
         const p = { x: s.player.x + command.dx, y: s.player.y + command.dy };
-        if (!isWall(p.x, p.y)) Object.assign(s.player, p);
+        if (!isWall(p.x, p.y)) {
+          Object.assign(s.player, p);
+          s.hasMoved = true;
+        }
       }
       if (command.type === "lantern") s.player.lantern = !s.player.lantern;
       if (command.type === "act") {
@@ -607,7 +703,7 @@ export function step(s: State, command?: Command): State {
       s.cold += s.player.lantern ? -Math.min(s.cold, 2) : 1;
     if (s.wellPendingTick !== null && s.nightTick >= s.wellPendingTick)
       receiveAid(s);
-    if (!s.witness && s.nightTick >= 10 && s.player.y < 13) {
+    if (!s.witness && s.hasMoved && s.nightTick >= 10 && s.player.y < 13) {
       const visible = s.actors.find(
         (a) =>
           (a.id === "danyal" || a.id === "tariq") &&
@@ -617,13 +713,14 @@ export function step(s: State, command?: Command): State {
       );
       if (visible) encounter(s, visible.id);
     }
-    if (!s.witness && s.nightTick >= 25 + s.routineOffset) encounter(s);
+    // Only a real sighting or a delivery can trigger a witness; never invent an envelope at home.
     if (!s.recoveryPending && s.cold >= 420)
       morning(
         s,
-        "The cold forced you to seek shelter. A neighbour helped you home; any delivered envelope stays with the household.",
+        "The cold forced you to seek shelter. A neighbour missed work to bring you home. You owe that work, and exhaustion shortens later nights. Any delivered envelope stays with the household.",
+        true,
       );
-    else if (!s.recoveryPending && s.nightTick >= NIGHT_LIMIT)
+    else if (!s.recoveryPending && s.nightTick >= nightLimit(s))
       morning(
         s,
         "Dawn ended the delivery window. Any delivered envelope stays with the household.",
@@ -637,6 +734,10 @@ export function projection(s: State) {
     height: HEIGHT,
     tick: s.tick,
     nightTick: s.nightTick,
+    nightLimit: nightLimit(s),
+    exposureNights: s.exposureNights,
+    rescues: s.rescues,
+    ending: s.ending,
     night: s.night,
     phase: s.phase,
     route: s.route,
@@ -654,6 +755,11 @@ export function projection(s: State) {
         y,
         wall: isWall(x, y),
         lit: lit(s, { x, y }),
+        playerLit:
+          s.player.lantern &&
+          !isWall(x, y) &&
+          distance(s.player, { x, y }) <= 3 &&
+          los(s.player, { x, y }),
         label:
           x === DOOR.x && y === DOOR.y
             ? "door"
@@ -685,11 +791,13 @@ export function projection(s: State) {
         : Math.max(0, s.wellPendingTick - s.nightTick),
     assistedWell: s.assistedWell,
     coldWarning:
-      s.cold >= 360
-        ? "You are shaking from cold. Raise the lantern or head home before you need rescue."
-        : s.cold >= 240
-          ? "Your hands are numb. Raise the lantern to recover warmth."
-          : "",
+      s.phase !== "night"
+        ? ""
+        : s.cold >= 360
+          ? "You are shaking from cold. Raise the lantern or head home before you need rescue."
+          : s.cold >= 240
+            ? "Your hands are numb. Raise the lantern to recover warmth."
+            : "",
     outcome: s.outcome,
     home: HOME,
     door: DOOR,

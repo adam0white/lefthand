@@ -93,6 +93,9 @@ func _draw() -> void:
             wall_lookup[Vector2i(x, y)] = true
         else:
             draw_circle(point + Vector2.ONE * cell * 0.5, cell * 0.24, Color("587487"))
+        # Host marks the exact contribution of Yusuf's lantern.
+        if bool(tile.get("playerLit", false)):
+            draw_rect(Rect2(point + Vector2.ONE * 2.0, Vector2.ONE * (cell - 4.0)), Color("ffe4a0"), false, 1.1)
         receipt.append({"x": x, "y": y, "lit": lit})
     # Roof decoration is derived from wall components, never used for lighting.
     var visited: Dictionary = {}
@@ -118,7 +121,7 @@ func _draw() -> void:
             for roof_x: int in range(low.x, high.x + 1, 2):
                 roof(Vector2i(roof_x, roof_y), Vector2i(mini(roof_x + 1, high.x), mini(roof_y + 1, high.y)))
     landmark("home", "Home")
-    landmark("door", "Idris’s house")
+    landmark("door", "Door · deliver beside marker")
     landmark("well", "Well")
     var landmarks: Array = frame.get("landmarks", [])
     for entry: Variant in landmarks:
@@ -135,7 +138,13 @@ func _draw() -> void:
         if reaction != "" and reaction != "none":
             draw_arc(point, cell * 0.43, -PI * 0.9, PI * 0.7, 20, Color("f3d68d"), 1.5, true)
         figure(point, COATS[index % COATS.size()], bool(person.get("lantern", false)), awake, reaction != "" and reaction != "none")
-        label(str(person.get("name", "")), point + Vector2(0, -cell * 0.52), Color("e1e5df"), maxi(9, int(cell * 0.35)))
+        # Person names sit above the figure; place labels sit below it.
+        var name_size: int = maxi(9, int(cell * 0.35))
+        var name_text: String = str(person.get("name", ""))
+        var name_width: float = font.get_string_size(name_text, HORIZONTAL_ALIGNMENT_LEFT, -1, name_size).x
+        var name_point: Vector2 = point + Vector2(0, -cell * 0.72)
+        draw_style_box(make_label_style(), Rect2(name_point - Vector2(name_width / 2.0 + 3, name_size), Vector2(name_width + 6, name_size + 3)))
+        label(name_text, name_point, Color("e1e5df"), name_size)
     var player: Dictionary = frame.get("player", {})
     if not player.is_empty():
         figure(at(float(player.get("x", 0)) + 0.5, float(player.get("y", 0)) + 0.5), Color("e4a74a"), bool(player.get("lantern", false)), true)
@@ -193,7 +202,12 @@ func landmark(key: String, title: String) -> void:
 
 func draw_landmark(place: Dictionary, key: String, title: String) -> void:
     var point: Vector2 = at(float(place.get("x", 0)) + 0.5, float(place.get("y", 0)) + 0.5)
-    if key == "well":
+    if key == "door":
+        # A high-contrast diamond identifies the actual host delivery tile.
+        var radius: float = cell * 0.31
+        draw_colored_polygon(PackedVector2Array([point + Vector2(0, -radius), point + Vector2(radius, 0), point + Vector2(0, radius), point + Vector2(-radius, 0)]), Color("fff0b1"))
+        draw_circle(point, cell * 0.12, INK)
+    elif key == "well":
         draw_circle(point, cell * 0.29, Color("99aeb8"))
         draw_circle(point, cell * 0.19, Color("162c40"))
         draw_line(point + Vector2(-cell * 0.3, -cell * 0.33), point + Vector2(cell * 0.3, -cell * 0.33), Color("c4b99c"), 2.0)
@@ -206,7 +220,7 @@ func draw_landmark(place: Dictionary, key: String, title: String) -> void:
         draw_rect(Rect2(point + Vector2(cell * 0.39, -cell * 0.7), Vector2(cell * 0.13, cell)), Color("b6c9cf"))
     var text_size: int = maxi(10, int(cell * 0.38))
     var text_width: float = font.get_string_size(title, HORIZONTAL_ALIGNMENT_LEFT, -1, text_size).x
-    var center: Vector2 = point + Vector2(0, cell * 0.84)
+    var center: Vector2 = point + Vector2(0, cell * (1.45 if key == "well" else 0.84))
     center.x = clampf(center.x, origin.x + text_width / 2.0 + 3, origin.x + cell * map_width - text_width / 2.0 - 3)
     draw_style_box(make_label_style(), Rect2(center - Vector2(text_width / 2.0 + 4, text_size), Vector2(text_width + 8, text_size + 4)))
     label(title, center, Color("f0dfb9"), text_size)

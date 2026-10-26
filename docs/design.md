@@ -6,9 +6,9 @@ Done for this slice means a complete three-night run with win and loss, replayab
 
 ## Goal and stakes
 
-One delivery each night. The door is direct but lit. A labelled envelope in the well's covered delivery box reaches the named family through Danyal. The goal is aid reaching the family on at least two nights. Three deliveries is a stronger ending. Exposure changes Idris's pride, Samira's trust and later talk; it never cancels delivered help. Missing the dawn deadline or letting Yusuf become too cold can lose a delivery. Cold, exhaustion and household hunger are host rules. No child dies. This slice does not need Yusuf's death either: someone brings him home.
+One delivery each night. The door is direct but lit. A labelled envelope in the well's covered delivery box reaches the named family through Danyal. The goal is aid reaching the family on at least two nights. Three deliveries is a stronger ending. Exposure changes Idris's pride, Samira's trust and later talk; it never cancels delivered help. Missing the dawn deadline or letting Yusuf become too cold can lose a delivery. Cold, exhaustion and household hunger are host rules. Every cold rescue removes 6 seconds from later nights and leaves Yusuf owing the neighbours the work they missed. Received aid remains received. No child dies. This slice does not need Yusuf's death either: someone brings him home.
 
-A finite time window, two routes, lighting, seed-varied witness routines and one recovery choice per night create decisions with costs. A witness cannot be avoided indefinitely: Danyal meets Yusuf on the way back. The player sees a reaction immediately. Danyal reports exactly what he saw; Tariq adds his explanation, labelled as his guess. Recovery can explain the errand or keep quiet. Explaining names the recipients, consumes 30 game seconds (3 seconds of the displayed dawn window) and builds trust that can speed the next well handoff. Keeping quiet costs no conversation time and preserves privacy. Morning gives one plain line per person. Later nights retain social consequences.
+A finite time window, two routes, lighting, seed-varied witness routines and one recovery choice per night create decisions with costs. A delivery produces a witness contact. A lowered lantern at the covered well box can leave the witness seeing Yusuf empty-handed; light or the door reveals the envelope. Waiting at home produces no invented sighting. The player sees a reaction immediately. Danyal reports exactly what he saw; Tariq adds his explanation, labelled as his guess. Recovery can explain the errand or keep quiet. Explaining names the recipients, consumes 3 seconds of the displayed dawn window and builds witness trust that saves the normal 3-second collection delay. Each exposed night adds 3 seconds to later well collection while Samira arranges a private handoff. Keeping quiet costs no conversation time and preserves privacy. Morning gives one plain line per person. Later nights retain social consequences.
 
 ## Coordinator rulings (2026-10-26)
 
@@ -38,7 +38,7 @@ A full-width Godot village sits between a short spoken line and thumb-sized dire
 
 ## Deferred
 
-- Separate nearby person and well labels on narrow screens: review2026-11-03 after the first panel; the current crop shows overlap, while the route and witness response remain readable.
+- Iteration 2 (2026-10-26) resolves the overlapping person/well labels, unmarked door, ambiguous lantern, timer drift, duplicate/stale text and mixed clock units. The lantern starts lit and names its state and action. All visible durations use the dawn clock seconds.
 
 - Linux WebKit framebuffer presentation: investigate 2026-11-03 with the retained bounded blit diagnostic; Godot4.7.2 stock-template errors remain unresolved. macOS WebKit is the Safari-oriented CI platform, consistent with [Playwright guidance](https://playwright.dev/docs/browsers#webkit).
 
@@ -47,3 +47,7 @@ A full-width Godot village sits between a short spoken line and thumb-sized dire
 - Physical iOS/Android load and memory test: 2026-11-21; browser emulation is not a physical device result.
 - HF 4.0 port: coordinated with all new games; review 2026-11-03.
 - Owner panel and same-tester retest: coordinator after lab round readiness; review 2026-11-03.
+
+## Iteration 2 endings
+
+At least two received envelopes still meet the aid goal. Private deliveries preserve Idris’s choice of whom to tell and Samira’s trust. Repeated exposure produces an explicit lost-trust ending and longer later well handoffs; the door remains immediate but public. Rescues produce an explicit exhaustion/owed-work ending and shorter later nights. The ending reports both exposure and rescue when both occur. HF receives the privacy harm and coordination events; host rules set delays and deadlines. No HF source changes.

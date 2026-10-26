@@ -191,10 +191,15 @@ for (const outcome of ["win", "loss"] as const) {
       await expect(page.locator("#morning")).toBeVisible();
       console.log("Morning", night, outcome);
       await expect(page.locator("#morning-lines p")).toHaveCount(5);
+      await expect(page.locator("#morning-lines")).not.toContainText("Yusuf:");
+      await expect(page.locator("#status")).toBeHidden();
+      await expect(page.locator("#cold-warning")).toBeHidden();
       const state = await snapshot(page);
       expect(state.night).toBe(night);
       expect(state.history).toHaveLength(night);
-      expect(state.history[night - 1]?.witness?.recovered).toBe("explain");
+      if (outcome === "win")
+        expect(state.history[night - 1]?.witness?.recovered).toBe("explain");
+      else expect(state.history[night - 1]?.witness).toBeNull();
       expect(state.deliveredTonight).toBe(outcome === "win");
       expect(
         await page.evaluate(
@@ -207,7 +212,7 @@ for (const outcome of ["win", "loss"] as const) {
     await expect(page.locator("#ending")).toBeVisible();
     await expect(page.locator("#ending-title")).toHaveText(
       outcome === "win"
-        ? "The help reached them"
+        ? "Help reached them; trust was lost"
         : "The household needs more help",
     );
     await verifyReplay(page);
