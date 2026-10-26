@@ -1,0 +1,34 @@
+{
+  "name": "lefthand",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "packageManager": "pnpm@12.14.0",
+  "engines": {
+    "node": ">=26"
+  },
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "python3 scripts/export.py && vite build && node scripts/package.mjs",
+    "lint": "biome check .",
+    "format": "biome check --write .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "e2e": "playwright test",
+    "check": "pnpm lint && pnpm typecheck && pnpm test"
+  },
+  "dependencies": {
+    "@adam0white/human-framework": "3.2.0",
+    "@adam0white/lab-client": "file:vendor/adam0white-lab-client-0.4.11.tgz"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.6.3",
+    "@types/node": "26.6.5",
+    "typescript": "7.0.2",
+    "vite": "8.3.5",
+    "vitest": "5.0.5",
+    "@playwright/test": "1.64.1",
+    "wrangler": "4.152.0"
+  }
+}
