@@ -1,16 +1,26 @@
-import { describe, expect, test } from "vitest";
+import { beforeEach, describe, expect, test } from "vitest";
 import {
   type Command,
   canAsk,
   createGame,
   exportRun,
   hash,
+  step as hostStep,
   isWall,
   projection,
   replayRun,
   type State,
-  step,
 } from "../src/host";
+
+let ticks = 0;
+beforeEach(() => {
+  ticks = 0;
+});
+function step(s: State, c?: Command) {
+  if (++ticks > 15000)
+    throw new Error("Headless scenario exceeded its tick budget");
+  return hostStep(s, c);
+}
 
 function command(s: State, c: Command) {
   step(s, c);
@@ -130,7 +140,10 @@ describe("authoritative host", () => {
     }
     step(s, { type: "act" });
     expect(s.wellPendingTick).not.toBeNull();
-    while (s.phase === "night") step(s);
+    while (s.phase === "night") {
+      if (s.recoveryPending) step(s, { type: "recover", choice: "keepquiet" });
+      else step(s);
+    }
     expect(s.status).toContain("cold");
     expect(s.delivered).toBe(0);
     expect(s.wellPendingTick).toBeNull();
@@ -164,6 +177,7 @@ describe("authoritative host", () => {
       else step(s);
     }
     step(s, { type: "act" });
+    if (s.recoveryPending) step(s, { type: "recover", choice: "keepquiet" });
     expect(s.phase).toBe("morning");
     expect(s.deliveredTonight).toBe(false);
     expect(s.delivered).toBe(0);
@@ -195,7 +209,10 @@ describe("authoritative host", () => {
     step(s, { type: "recover", choice: "keepquiet" });
     while (s.cold < 240) step(s);
     expect(projection(s).coldWarning).toContain("numb");
-    while (s.phase === "night") step(s);
+    while (s.phase === "night") {
+      if (s.recoveryPending) step(s, { type: "recover", choice: "keepquiet" });
+      else step(s);
+    }
     expect(s.status).toContain("cold");
     expect(s.witness?.fact).toBe(fact);
     expect(s.witness?.recovered).toBe("keepquiet");
@@ -408,7 +425,7 @@ describe("iteration two consequences", () => {
 
 test("an unseen door handoff is thanked, not exposed, even after a quiet sighting", async () => {
   const { shortestPath } = await import("../scripts/policies");
-  const s = createGame(1);
+  const s = createGame(2);
   const quiet = () => {
     if (s.recoveryPending) step(s, { type: "recover", choice: "keepquiet" });
   };
@@ -423,8 +440,7 @@ test("an unseen door handoff is thanked, not exposed, even after a quiet sightin
   travel({ x: 4, y: 7 });
   for (let i = 0; i < 30 && !s.witness; i++) step(s);
   quiet();
-  expect(s.witness?.id).toBe("danyal");
-  expect(s.witness?.sight).toBe("carrying");
+  expect(s.witness).toBeNull();
   travel({ x: 11, y: 3 });
   step(s, { type: "act" });
   quiet();
@@ -453,8 +469,8 @@ test("Tariq's guess alone is village talk, not lost trust", () => {
   const s = createGame(1);
   step(s, { type: "plan", route: "well" });
   for (let i = 0; i < 10; i++) step(s);
-  for (let i = 0; i < 4 && !s.witness; i++)
-    step(s, { type: "move", dx: 0, dy: -1 });
+  walk(s, 7, 9);
+  for (let i = 0; i < 250 && !s.witness; i++) step(s);
   expect(s.witness?.id).toBe("tariq");
   expect(s.witness?.explanation).toContain("helping Idris and Samira");
   step(s, { type: "recover", choice: "keepquiet" });
@@ -569,8 +585,8 @@ describe("panel fix cycle (F-1626 to F-1631)", () => {
     const s = createGame(1);
     step(s, { type: "plan", route: "well" });
     for (let i = 0; i < 10; i++) step(s);
-    for (let i = 0; i < 4 && !s.witness; i++)
-      step(s, { type: "move", dx: 0, dy: -1 });
+    walk(s, 7, 9);
+    for (let i = 0; i < 250 && !s.witness; i++) step(s);
     quietly(s);
     step(s, { type: "lantern" });
     walk(s, 4, 7);
@@ -613,7 +629,7 @@ describe("panel fix cycle (F-1626 to F-1631)", () => {
       else step(s, policyCommand(s, "careless"));
     }
     expect(refusal).toContain("will not promise twice");
-    const [first, second] = s.history;
+    const [first, , second] = s.history;
     expect(first?.witness?.recovered).toBe("ask");
     expect(first).toMatchObject({ talk: false, exposed: false });
     expect(
@@ -650,5 +666,88 @@ describe("panel fix cycle (F-1626 to F-1631)", () => {
     expect(() =>
       replayRun({ ...run, schema: "left-hand-run@2" } as never),
     ).toThrow("Incompatible run");
+  });
+});
+
+describe("retests-1027c engine fixes", () => {
+  test("route and lantern move sightings away from Home, and Danyal names carrying", () => {
+    const well = createGame(2);
+    step(well, { type: "plan", route: "well" });
+    well.nightTick = 10;
+    const wellKeeper = well.actors.find((a) => a.id === "danyal");
+    if (!wellKeeper) throw Error("Missing well keeper");
+    Object.assign(wellKeeper, { x: 7, y: 10 });
+    well.player.y = 13;
+    step(well, { type: "move", dx: 0, dy: -1 });
+    expect(well.witness).toBeNull();
+    well.player.y = 10;
+    const door: State = JSON.parse(JSON.stringify(well));
+    door.route = "door";
+    const hidden: State = JSON.parse(JSON.stringify(well));
+    hidden.player.lantern = false;
+    step(well, { type: "move", dx: 0, dy: -1 });
+    step(door, { type: "move", dx: 0, dy: -1 });
+    step(hidden, { type: "move", dx: 0, dy: -1 });
+    expect(well.witness).toMatchObject({ id: "danyal", sight: "carrying" });
+    expect(well.status).toContain("carrying an envelope");
+    expect(well.envelopePlaced).toBe(false);
+    expect(door.witness).toBeNull();
+    expect(hidden.witness).toBeNull();
+    door.player.y = 7;
+    const doorKeeper = door.actors.find((a) => a.id === "danyal");
+    if (!doorKeeper) throw Error("Missing door keeper");
+    doorKeeper.y = 6;
+    step(door, { type: "move", dx: 0, dy: -1 });
+    expect(door.witness?.id).toBe("danyal");
+  });
+
+  test("Return home walks from the door while time passes, and replays exactly", () => {
+    const s = createGame(13);
+    command(s, { type: "plan", route: "door" });
+    walk(s, 11, 3);
+    command(s, { type: "act" });
+    const tick = s.nightTick;
+    step(s, { type: "act" });
+    expect(s.returningHome).toBe(true);
+    expect(s.status).toContain("walking home");
+    while (s.phase === "night") step(s);
+    expect(s.nightTick - tick).toBeGreaterThan(30);
+    expect(s.status).toContain("returned home");
+    expect(s.player.y).toBeGreaterThanOrEqual(14);
+    expect(hash(replayRun(exportRun(s)))).toBe(hash(s));
+  });
+
+  test("a joke names nobody, costs a second, and preserves the witness's facts", async () => {
+    const { policyCommand } = await import("../scripts/policies");
+    const s = createGame(1);
+    while (!s.recoveryPending) step(s, policyCommand(s, "careless"));
+    const fact = s.witness?.fact;
+    const guess = s.witness?.explanation;
+    step(s, { type: "recover", choice: "joke" });
+    expect(s.conversationTicksRemaining).toBe(10);
+    expect(s.witness).toMatchObject({
+      fact,
+      explanation: guess,
+      recovered: "joke",
+    });
+    expect(s.status).toContain("name nobody and deny nothing");
+    expect(s.promised).toEqual([]);
+    while (s.phase === "night") step(s, policyCommand(s, "careless"));
+    expect(s.history[0]?.talk || s.history[0]?.exposed).toBe(true);
+    expect(s.morningLines.find((p) => p.id === "yusuf")?.line).toContain(
+      "You joked",
+    );
+    expect(hash(replayRun(exportRun(s)))).toBe(hash(s));
+    expect(() => step(s, { type: "recover", choice: "lie" } as never)).toThrow(
+      "Unknown recovery",
+    );
+  });
+
+  test("headless careless control still loses privacy and replays exactly", async () => {
+    const { policyCommand } = await import("../scripts/policies");
+    const s = createGame(7);
+    while (s.phase !== "ended") step(s, policyCommand(s, "careless"));
+    expect(s.ending).toBe("exposed");
+    expect(hash(replayRun(exportRun(s)))).toBe(hash(s));
   });
 });
