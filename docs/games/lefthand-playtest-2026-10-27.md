@@ -11,14 +11,16 @@
 
 ## Verdict: finished (no new blocking ask)
 
-Return sentence (keep): "Yes, I would come back on my own to see whether a third route changes what Samira and Idris say about me, as long as the well tile is marked so I do not lose a night to guessing where to stand."
+Return sentence (mixed): "Yes, I would come back on my own to see whether a third route changes what Samira and Idris say about me, as long as the well tile is marked so I do not lose a night to guessing where to stand."
 
 The earlier top fixes are met in the tester's words:
 - The lantern reads as an action.
 - Concealment and cold change the ending.
 - The door marker is drawn.
 
-### Remaining asks (Deferred, target 2026-11-10)
+The well marker is a variant of the earlier door-marker fix, which the tester marked "partly" met. It is a prior ask, not a new one.
+
+### Remaining asks (on the design Deferred list, target 2026-11-10)
 
 1. The well route says "Stand beside the marked delivery tile, then leave the envelope," but only the door is marked. Proposed fix: draw the well marker and say "Stand beside the well".
 2. "Reduce stuck moves on the way to the door. The houses east of Home cost me two attempts."
@@ -28,11 +30,11 @@ The earlier top fixes are met in the tester's words:
 
 ## Tester ledger
 
-Disposition is keep, mixed or quit from the first answer in the return sentence. Session times are the driver's elapsed seconds at the stop line, not the player's own estimate.
+Disposition: keep is yes with no condition; mixed is yes or maybe with a condition; quit is a sentence that opens with no or not tonight. Session times are the driver's elapsed seconds at the stop line, not the player's own estimate.
 
 | tester | commit | sessions (device, stop reason, driver time) | return sentence | disposition |
 | --- | --- | --- | --- | --- |
-| Claude cold player | 6c34992 | phone no stop line, last entry at 1200 s; desktop no stop line, last entry at 1200 s | Yes, I would come back on my own to see whether a third route changes what Samira and Idris say about me, as long as the well tile is marked so I do not lose a night to guessing where to stand. | keep |
+| Claude cold player | 6c34992 | phone no stop line, last entry at 1200 s; desktop no stop line, last entry at 1200 s | Yes, I would come back on my own to see whether a third route changes what Samira and Idris say about me, as long as the well tile is marked so I do not lose a night to guessing where to stand. | mixed |
 
 ## Player words
 

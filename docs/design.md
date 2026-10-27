@@ -46,6 +46,12 @@ A full-width Godot village sits between a short spoken line and thumb-sized dire
 - Footprints, weather erasing tracks and go-betweens: 2026-11-14; keep this run bounded.
 - Physical iOS/Android load and memory test: 2026-11-21; browser emulation is not a physical device result.
 - HF 4.0 port: coordinated with all new games; review 2026-11-03.
+- Same-tester retest 2026-10-27 ([playtest](games/lefthand-playtest-2026-10-27.md)), target 2026-11-10:
+  - Draw the well delivery marker. The route says "Stand beside the marked delivery tile", but only the door is marked.
+  - Reduce stuck moves by the houses east of Home.
+  - Start Tariq farther from Home, or show where he is looking.
+  - Fix the "Danyal" label over "Well" and the desktop arrow buttons at the fold.
+  - Stop Danyal saying "I saw your envelope" when he is the collector.
 - Owner panel and same-tester retest: coordinator after lab round readiness; review 2026-11-03.
 
 ## Iteration 2 endings
