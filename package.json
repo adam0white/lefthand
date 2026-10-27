@@ -17,6 +17,7 @@
     "test": "vitest run",
     "e2e": "playwright test",
     "check": "pnpm lint && pnpm typecheck && pnpm test",
+    "check:lane": "pnpm check",
     "deploy": "node scripts/deploy.mjs"
   },
   "dependencies": {

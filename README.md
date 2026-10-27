@@ -10,4 +10,4 @@ See [design](docs/design.md). Code is MIT.
 
 Third-party copyright and license texts are retained in [public/third-party-notices.txt](public/third-party-notices.txt), also linked from Licenses in the game menu.
 
-Deploy with `npm run deploy` from clean, pushed main after exact green CI. The command builds, uploads and verifies the live commit and `dirty:false` at `/release.json`. Run exports and replay verification are under Menu → Debug.
+Deploy with `npm run deploy` from clean, pushed main after exact green CI. The command builds, uploads and verifies the live commit and `dirty:false` at `/release.json`. Download run is public in Menu. Replay verification is in the collapsed Debug item beside Lab privacy.

@@ -74,9 +74,10 @@ test("controls, clock, pause menu and desktop evening fit", async ({
     "rgb(16, 28, 41)",
   );
   await expect(page.locator("#debug")).not.toHaveAttribute("open", "");
-  await expect(page.locator("#download")).toBeHidden();
-  await page.locator("#debug summary").click();
   await expect(page.locator("#download")).toBeVisible();
+  await expect(page.locator("#verify")).toBeHidden();
+  await page.locator("#debug summary").click();
+  await expect(page.locator("#verify")).toBeVisible();
   await page.locator("#verify").click();
   await expect(page.locator("#menu-status")).toContainText("Replay verified:");
   const paused = await page.evaluate(

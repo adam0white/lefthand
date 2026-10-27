@@ -133,7 +133,7 @@ for (const outcome of ["win", "loss"] as const) {
       });
     });
     await page.clock.install();
-    await page.goto("/?lab=1");
+    await page.goto("/");
     await expect
       .poll(
         () => page.evaluate(() => window.Lefthand?.metrics().rendererReady),
@@ -223,3 +223,28 @@ for (const outcome of ["win", "loss"] as const) {
     expect(errors).toEqual([]);
   });
 }
+
+// Public export is gameplay support; replay verification remains a diagnostic.
+test("ordinary menu exposes export beside collapsed diagnostics", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.locator("#menu-open").click();
+  await expect(page.locator("#download")).toBeVisible();
+  await expect(page.locator("#new")).toBeVisible();
+  await expect(page.locator("#debug")).not.toHaveAttribute("open", "");
+  await expect(page.locator("#verify")).toBeHidden();
+  const privacy = await page
+    .getByRole("link", { name: "Lab privacy", exact: true })
+    .boundingBox();
+  const debug = await page.locator("#debug summary").boundingBox();
+  expect(privacy).not.toBeNull();
+  expect(debug).not.toBeNull();
+  expect(Math.abs((privacy?.y ?? 0) - (debug?.y ?? 0))).toBeLessThan(5);
+  const download = page.waitForEvent("download");
+  await page.locator("#download").click();
+  expect((await download).suggestedFilename()).toMatch(/^lefthand-.*\.json$/);
+  await page.locator("#debug summary").click();
+  await page.locator("#verify").click();
+  await expect(page.locator("#menu-status")).toContainText("Replay verified");
+});

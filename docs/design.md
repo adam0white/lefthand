@@ -26,7 +26,7 @@ A finite time window, two routes, lighting, seed-varied witness routines and one
 
 Godot 4.7.2 Compatibility single-threaded web renderer, TypeScript 7.0.2 strict with noUncheckedIndexedAccess, HF exactly 3.2.0, Node 26.12.0, pnpm 12.14.0 without hoisting. Godot holds only a drawing projection. Host fixed 10 Hz ticks and stamped input log own movement, light, weather, time and full HF Persons and RNGs. The state hash includes these. Replaying includes evening and recovery choices. The owner wants Godot learnings; this is sufficient reason to choose it. The spike did not prove deployed gzip packaging or physical phone performance. Brain consultation found no index at ~/code/brain/promoted/index.md.
 
-HF owns actors: decisions, witness memory, belief reception, relationship effects and waking. Game rules own space, cold, deadlines and delivery. No HF implementation is copied into the game. The immutable lab-client 0.4.15 artifact supplies default-on recording, the first-visit notice and feedback with I'm stopping / I'm confused. Every gameplay feature is public. Download run and Verify replay sit in a collapsed Debug item beside recording and privacy controls; no query string is required.
+HF owns actors: decisions, witness memory, belief reception, relationship effects and waking. Game rules own space, cold, deadlines and delivery. No HF implementation is copied into the game. The immutable lab-client 0.4.15 artifact supplies default-on recording, the first-visit notice and feedback with I'm stopping / I'm confused. Every gameplay feature is public. Download run is public in Menu. Verify replay sits in one collapsed Debug item beside Lab privacy.
 
 ## Cast
 
@@ -143,6 +143,12 @@ Scope is F-1623, F-1624, F-2153, F-1634, F-1625 and F-1631 from `retests-1027c`,
 - Before the envelope is left, Danyal says he sees Yusuf carrying it. Afterward he distinguishes seeing an envelope left from seeing Yusuf empty-handed.
 - Joke is an honest reply about the cold. It costs one second, names nobody and changes neither what the witness saw nor Tariq's guess. It grants no privacy promise.
 - The night layout reserves space for controls with the recording notice open. Lantern buttons remain on one row. The Godot renderer avoids overlapping person and place labels.
-- Debug is collapsed and contains Download run and Verify replay. Gameplay and diagnostics no longer require `?lab`.
+- Download run is public in Menu. Debug is collapsed beside Lab privacy and contains Verify replay. Gameplay and diagnostics require no query string.
 
 Current state and run schemas advance to `left-hand@4` and `left-hand-run@4`. Current exports replay exactly. Earlier exports require starting fresh. Dawn, cold, collection delays and privacy consequences remain active; careless play can still lose.
+
+## Public tools follow-up (2026-10-27)
+
+Download run is available directly in Menu. Verify replay remains a diagnostic in the initially collapsed Debug item on the Lab privacy row. New game remains public. This game has no pace controls, alternate starts, or why panels to expose. HF stays exactly 3.2.0.
+
+Automatic shared-person carryover is incomplete. The central shelf's `apps/site/src/shared/cast-native-sources.ts` has finite source/target contracts and no Left Hand contract. Its existing Valley routes recognize Yusuf, Danyal and Samira only with the `valley-cast/1` passport and `valley-cast-3` source rules. Left Hand cannot label its changed people as Valley checkpoints. No partial shelf writes ship here. Target: 2026-10-28. Define reciprocal Left Hand passports, validated admission/projection in each receiving game and the central shelf, then test full return routes without replacing compatible shelf heads with rejected histories. Cast controls belong on the central shelf.
