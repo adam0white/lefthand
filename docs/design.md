@@ -52,6 +52,25 @@ A full-width Godot village sits between a short spoken line and thumb-sized dire
   - Start Tariq farther from Home, or show where he is looking.
   - Fix the "Danyal" label over "Well" and the desktop arrow buttons at the fold.
   - Stop Danyal saying "I saw your envelope" when he is the collector.
+- Lab-panel round `retests-1027b` (2026-10-27, build `6c34992`). ([playtest](games/lefthand-playtest-2026-10-27-panel.md)). Needs a fix cycle and a same-tester retest. Numbers come from the central F sequence; F-1621 to F-1625 are the earlier retest asks above.
+  - F-1621: draw the well marker, say "Stand beside the well", and hide the Door label on a well night. Target 2026-11-03.
+  - F-1622: reduce stuck moves on the door row. Target 2026-11-10.
+  - F-1623: start Tariq and Danyal farther from Home, and vary where they meet Yusuf. Target 2026-11-03.
+  - F-1624: keep the arrows and Explain/Keep quiet above the fold at 1280x800, and stop the phone arrows moving when the text grows. Target 2026-11-03.
+  - F-1625: stop Danyal saying "I saw your envelope" when he is the collector. Target 2026-11-10.
+  - F-1626 (blocking): label Yusuf "You" on the map. Target 2026-11-03.
+  - F-1627 (blocking): mornings name the route and whether Yusuf was seen; say why trust drops. Target 2026-11-03.
+  - F-1628 (blocking): a failed delivery names its cause; show a collection countdown; name the nights in the ending. Target 2026-11-03.
+  - F-1629 (blocking): show which tiles count as beside a marker; diagonals do not. Target 2026-11-03.
+  - F-1630 (blocking): a cold bar while the lantern is hidden. Target 2026-11-03.
+  - F-1631 (blocking): a third reply to the neighbour's question. Target 2026-11-10 (design work).
+  - F-1632: hold-to-walk or tap-to-go on touch (unreproduced timing). Target 2026-11-10.
+  - F-1633: greyed arrows with "Answer first" while a question is open. Target 2026-11-10.
+  - F-1634: Return home works from any tile or says where to go. Target 2026-11-10.
+  - F-1635: show what missing home before dawn costs. Target 2026-11-10.
+  - F-1636: fix contradicting copy (Tariq on no-delivery mornings, "Samira receives" on the well route, evening-3 "3 seconds"). Target 2026-11-10.
+  - F-1637: split Rosa's two long sentences. Target 2026-11-10.
+  - F-1638: separate Explain and Keep quiet. Target 2026-11-10.
 - Owner panel and same-tester retest: coordinator after lab round readiness; review 2026-11-03.
 
 ## Iteration 2 endings
