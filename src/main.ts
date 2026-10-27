@@ -16,6 +16,7 @@ import {
   step,
   upcomingWellSeconds,
 } from "./host";
+import { restartGame } from "./restart";
 import "./style.css";
 
 const element = <T extends HTMLElement>(id: string): T => {
@@ -31,10 +32,10 @@ app.innerHTML = `<main>
 <p id="chapter" class="chapter"></p><p id="status" role="status"></p>
 <section id="evening" aria-label="At Yusuf’s table"><p id="table-line">At the table, Yusuf addresses an envelope to Idris and Samira. They need food and fuel. Outside, if any light reaches you (your lantern, a lamp or a neighbour’s lantern), a nearby neighbour can see you. Hiding your lantern helps you stay unseen, but the cold builds. If the warmth bar empties, a neighbour must carry you home.</p><p>Where will you leave it?</p><div class="choices"><button id="route-door">Their door · farther, Samira knows it was you</button><button id="route-well">Well box · closer, Danyal must collect it before dawn</button></div><p class="source">Yusuf understands concealed voluntary giving as preferable; open giving is also good. <a href="https://quran.com/2/271" target="_blank" rel="noopener">Qur’an 2:271</a> · <a href="https://sunnah.com/bukhari:1423" target="_blank" rel="noopener">Bukhari 1423</a></p></section>
 <div class="village"><canvas id="canvas" tabindex="0" aria-label="Snowy village. Move with arrow keys or WASD, or use the direction buttons."></canvas><p id="loading">Lighting the village… You can choose a route now.</p></div>
-<section id="night" aria-label="Delivery controls" hidden><div id="recovery" hidden><p id="recovery-line"></p><div class="choices"><button id="explain">Explain</button><button id="quiet">Keep quiet</button><button id="ask">Ask him not to tell</button></div></div><div id="walking"><div class="action-row"><button id="lantern">Lantern lit · hide (L)</button><button id="act">Leave envelope</button></div><div id="warmth" class="warmth"><span id="cold-warning" role="status"></span><span class="bar" role="meter" aria-label="Warmth" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><i id="warmth-fill"></i></span></div><div class="directions" aria-label="Move"><button data-move="0,-1" class="up" aria-label="Move north">↑</button><button data-move="-1,0" class="left" aria-label="Move west">←</button><button data-move="0,1" class="down" aria-label="Move south">↓</button><button data-move="1,0" class="right" aria-label="Move east">→</button></div><p class="hint">Arrows / WASD move · L lantern · Enter deliver or return home</p></div></section>
+<section id="night" aria-label="Delivery controls" hidden><div id="recovery" hidden><p id="recovery-line"></p><div class="choices"><button id="explain">Explain</button><button id="quiet">Keep quiet</button><button id="joke">Make a joke</button><button id="ask">Ask him not to tell</button></div></div><div id="walking"><div class="action-row"><button id="lantern">Lantern lit · hide (L)</button><button id="act">Leave envelope</button></div><div id="warmth" class="warmth"><span id="cold-warning" role="status"></span><span class="bar" role="meter" aria-label="Warmth" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><i id="warmth-fill"></i></span></div><div class="directions" aria-label="Move"><button data-move="0,-1" class="up" aria-label="Move north">↑</button><button data-move="-1,0" class="left" aria-label="Move west">←</button><button data-move="0,1" class="down" aria-label="Move south">↓</button><button data-move="1,0" class="right" aria-label="Move east">→</button></div><p class="hint">Arrows / WASD move · L lantern · Enter deliver or return home</p></div></section>
 <section id="morning" aria-label="Morning accounts" hidden><div id="morning-lines"></div><button id="next">Next evening</button></section>
 <section id="ending" hidden><h2 id="ending-title"></h2><p id="ending-line"></p><button id="again">Play again</button></section>
-<section id="menu" class="menu" aria-label="Menu" hidden><div class="menu-top"><h2>Paused</h2><button id="menu-close">Return to play</button></div><p><label><input id="recording" type="checkbox"> Recording</label> · <a href="${PRIVACY_URL}" target="_blank" rel="noopener">Privacy</a> · <a href="/third-party-notices.txt" target="_blank" rel="noopener">Licenses</a></p><div class="menu-actions"><button id="feedback-stop">I’m stopping</button><button id="feedback-confused">I’m confused</button><button id="download">Download run</button><button id="verify">Verify replay</button><button id="fullscreen">Fullscreen</button><button id="new">New game</button><a id="all-games" href="https://human.adamwhite.work/">All games</a></div><div id="new-confirm" hidden><p>End this run and prepare a new envelope?</p><button id="new-yes">Start new game</button><button id="new-no">Keep this run</button></div><form id="feedback" hidden><label for="note">Add a note, if you like</label><textarea id="note" rows="3" maxlength="4000"></textarea><label><input id="share-run" type="checkbox"> Share this run with the note (turns recording on)</label><div class="choices"><button type="submit" id="feedback-send">Send feedback</button><button type="button" id="feedback-cancel">Cancel</button></div></form><p id="menu-status" role="status"></p></section>
+<section id="menu" class="menu" aria-label="Menu" hidden><div class="menu-top"><h2>Paused</h2><button id="menu-close">Return to play</button></div><p><label><input id="recording" type="checkbox"> Recording</label> · <a href="${PRIVACY_URL}" target="_blank" rel="noopener">Privacy</a> · <a href="/third-party-notices.txt" target="_blank" rel="noopener">Licenses</a></p><details id="debug"><summary>Debug</summary><div class="menu-actions"><button id="download">Download run</button><button id="verify">Verify replay</button></div></details><div class="menu-actions"><button id="feedback-stop">I’m stopping</button><button id="feedback-confused">I’m confused</button><button id="fullscreen">Fullscreen</button><button id="new">New game</button><a id="all-games" href="https://human.adamwhite.work/">All games</a></div><div id="new-confirm" hidden><p>End this run and prepare a new envelope?</p><button id="new-yes">Start new game</button><button id="new-no">Keep this run</button></div><form id="feedback" hidden><label for="note">Add a note, if you like</label><textarea id="note" rows="3" maxlength="4000"></textarea><label><input id="share-run" type="checkbox"> Share this run with the note (turns recording on)</label><div class="choices"><button type="submit" id="feedback-send">Send feedback</button><button type="button" id="feedback-cancel">Cancel</button></div></form><p id="menu-status" role="status"></p></section>
 </main>`;
 
 const lab = createLab({ game: "lefthand" });
@@ -124,6 +125,9 @@ function update() {
           }`,
     );
     element<HTMLButtonElement>("ask").hidden = !canAsk(w);
+    element("recovery-line").append(
+      " Make a joke (1 second): name nobody; what he saw and guessed stays the same.",
+    );
   }
   show("walking", !state.recoveryPending);
   setText(
@@ -140,7 +144,7 @@ function update() {
   setText(
     "status",
     state.conversationTicksRemaining > 0
-      ? `${state.witness?.recovered === "ask" ? "Yusuf asks for his silence" : "Yusuf explains the errand"}. ${conversationSeconds} ${conversationSeconds === 1 ? "second of conversation remains" : "seconds of conversation remain"}; dawn is getting closer.`
+      ? `${state.witness?.recovered === "ask" ? "Yusuf asks for his silence" : state.witness?.recovered === "joke" ? "Yusuf jokes about the cold" : "Yusuf explains the errand"}. ${conversationSeconds} ${conversationSeconds === 1 ? "second of conversation remains" : "seconds of conversation remain"}; dawn is getting closer.`
       : view.deliveryPending && phase === "night" && !state.recoveryPending
         ? `Danyal collects the envelope from the well box in ${collectSeconds} ${collectSeconds === 1 ? "second" : "seconds"}; dawn is in ${dawnSeconds}.${collectSeconds > dawnSeconds ? " Dawn will come first, so it will not reach them tonight." : " It must be collected before dawn to count."} You may start walking home.`
         : state.status,
@@ -247,7 +251,10 @@ function setMenu(open: boolean) {
 }
 function reset() {
   queue.length = 0;
-  state = createGame(crypto.getRandomValues(new Uint32Array(1))[0] ?? 1);
+  state = restartGame(
+    state.seed,
+    crypto.getRandomValues(new Uint32Array(1))[0] ?? 1,
+  );
   morningKey = "";
   lastStep = performance.now();
   show("new-confirm", false);
@@ -260,9 +267,6 @@ function recordingUI() {
 }
 lab.trackRun(() => exportRun(state), { runKey: () => state.seed });
 recordingUI();
-const labTools = new URLSearchParams(location.search).get("lab") === "1";
-show("download", labTools);
-show("verify", labTools);
 try {
   if (localStorage.getItem("lefthand-notice-v1") !== "1") {
     localStorage.setItem("lefthand-notice-v1", "1");
@@ -324,17 +328,16 @@ Object.assign(window, {
     },
   },
 });
-if (new URLSearchParams(location.search).get("lab") === "1")
-  Object.assign(window, {
-    Lefthand: {
-      snapshot: () => clone(state),
-      command: (command: Command) => enqueue(command),
-      export: () => exportRun(state),
-      hash: () => hash(state),
-      replay: (run: Run) => replayRun(run),
-      metrics: () => ({ ...measurements, queued: queue.length }),
-    },
-  });
+Object.assign(window, {
+  Lefthand: {
+    snapshot: () => clone(state),
+    command: (command: Command) => enqueue(command),
+    export: () => exportRun(state),
+    hash: () => hash(state),
+    replay: (run: Run) => replayRun(run),
+    metrics: () => ({ ...measurements, queued: queue.length }),
+  },
+});
 
 setInterval(() => {
   const now = performance.now();
@@ -365,6 +368,7 @@ element("explain").onclick = () =>
 element("quiet").onclick = () =>
   enqueue({ type: "recover", choice: "keepquiet" });
 element("ask").onclick = () => enqueue({ type: "recover", choice: "ask" });
+element("joke").onclick = () => enqueue({ type: "recover", choice: "joke" });
 element("next").onclick = () => enqueue({ type: "next" });
 for (const button of document.querySelectorAll<HTMLButtonElement>(
   "[data-move]",

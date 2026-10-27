@@ -9,6 +9,7 @@ var origin: Vector2 = Vector2.ZERO
 var map_width: int = 15
 var map_height: int = 18
 var font: Font
+var label_boxes: Array[Rect2] = []
 const INK: Color = Color("111f35")
 const SNOW: Color = Color("a8c1cf")
 const GOLD: Color = Color("d7a345")
@@ -65,6 +66,7 @@ func label(text: String, point: Vector2, color: Color, size: int = 11) -> void:
     draw_string(font, point + Vector2(-width / 2.0, 0), text, HORIZONTAL_ALIGNMENT_LEFT, -1, size, color)
 
 func _draw() -> void:
+    label_boxes.clear()
     var viewport: Vector2 = get_viewport_rect().size
     draw_rect(Rect2(Vector2.ZERO, viewport), Color("091222"))
     if frame.is_empty():
@@ -154,7 +156,21 @@ func _draw() -> void:
         var name_text: String = str(person.get("name", ""))
         var name_width: float = font.get_string_size(name_text, HORIZONTAL_ALIGNMENT_LEFT, -1, name_size).x
         var name_point: Vector2 = point + Vector2(0, -cell * 0.72)
-        draw_style_box(make_label_style(), Rect2(name_point - Vector2(name_width / 2.0 + 3, name_size), Vector2(name_width + 6, name_size + 3)))
+        var name_box: Rect2 = Rect2(name_point - Vector2(name_width / 2.0 + 3, name_size), Vector2(name_width + 6, name_size + 3))
+        # Move names above existing place labels instead of covering Well box.
+        for attempt: int in range(8):
+            var overlaps: bool = false
+            for occupied: Rect2 in label_boxes:
+                if name_box.grow(2.0).intersects(occupied):
+                    overlaps = true
+                    break
+            if not overlaps:
+                break
+            var offset: Vector2 = Vector2(0, -name_size - 6)
+            name_point += offset
+            name_box.position += offset
+        label_boxes.append(name_box)
+        draw_style_box(make_label_style(), name_box)
         label(name_text, name_point, Color("e1e5df"), name_size)
     var player: Dictionary = frame.get("player", {})
     if not player.is_empty():
@@ -250,7 +266,9 @@ func draw_landmark(place: Dictionary, key: String, title: String) -> void:
     var text_width: float = font.get_string_size(title, HORIZONTAL_ALIGNMENT_LEFT, -1, text_size).x
     var center: Vector2 = point + Vector2(0, cell * (1.45 if key == "well" else 0.84))
     center.x = clampf(center.x, origin.x + text_width / 2.0 + 3, origin.x + cell * map_width - text_width / 2.0 - 3)
-    draw_style_box(make_label_style(), Rect2(center - Vector2(text_width / 2.0 + 4, text_size), Vector2(text_width + 8, text_size + 4)))
+    var box: Rect2 = Rect2(center - Vector2(text_width / 2.0 + 4, text_size), Vector2(text_width + 8, text_size + 4))
+    label_boxes.append(box)
+    draw_style_box(make_label_style(), box)
     label(title, center, Color("f0dfb9"), text_size)
 
 func make_label_style() -> StyleBoxFlat:

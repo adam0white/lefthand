@@ -52,6 +52,9 @@ p {
   color: #b7c4cb;
   letter-spacing: 0.04em;
 }
+[data-phase="night"] p {
+  margin-block: 4px;
+}
 #status {
   min-height: 50px;
   color: #e6d7b8;
@@ -399,5 +402,69 @@ form .choices {
   }
   [data-phase="evening"] canvas {
     height: clamp(300px, calc(100dvh - 320px), 480px);
+  }
+}
+
+/* Reserve the controls before allocating map height, including the first-visit
+   notice. Lantern labels share one row, so toggling never moves the arrows. */
+[data-phase="night"] main {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+[data-phase="night"] main > * {
+  flex-shrink: 0;
+}
+[data-phase="night"] h1 {
+  margin-bottom: 4px;
+}
+[data-phase="night"] #status {
+  height: 76px;
+  min-height: 0;
+  overflow: auto;
+}
+[data-phase="night"] .village {
+  flex: 1 1 0;
+  min-height: 120px;
+  margin-block: 6px;
+}
+[data-phase="night"] canvas {
+  height: 100%;
+}
+.action-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+.action-row button {
+  min-width: 0;
+  white-space: nowrap;
+  padding-inline: 6px;
+}
+[data-phase="night"] .directions {
+  margin-block: 6px;
+}
+#debug {
+  font-size: 14px;
+  margin-block: 12px;
+}
+#debug summary {
+  cursor: pointer;
+  color: #d5bd86;
+}
+#debug .menu-actions {
+  margin-block: 10px;
+}
+@media (max-width: 480px) {
+  .action-row button {
+    font-size: 12px;
+  }
+  [data-phase="night"] .notice {
+    line-height: 1.4;
+    padding-block: 6px;
+  }
+  [data-phase="night"] #cold-warning {
+    font-size: 11px;
   }
 }

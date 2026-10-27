@@ -22,9 +22,9 @@ export type Command =
   | { type: "next" }
   | { type: "wait" };
 type Point = { x: number; y: number };
-/** Replies to a neighbour's question. All three are honest: "ask" names nobody
+/** Replies to a neighbour's question. All replies are honest: "ask" names nobody
  * and asks him to keep what he saw to himself. */
-export type Reply = "explain" | "keepquiet" | "ask";
+export type Reply = "explain" | "keepquiet" | "ask" | "joke";
 type Actor = Point & {
   id: string;
   reaction: string;
@@ -43,13 +43,14 @@ type Witness = {
   repeat: boolean;
 };
 export type State = {
-  schema: "left-hand@3";
+  schema: "left-hand@4";
   engine: string;
   seed: number;
   rng: number;
   tick: number;
   nightTick: number;
   hasMoved: boolean;
+  returningHome: boolean;
   exposureNights: number;
   /** Nights when only Tariq's guess named the family: village talk, no lost trust. */
   talkNights: number;
@@ -104,7 +105,7 @@ export type State = {
   routineOffset: number;
 };
 export type Run = {
-  schema: "left-hand-run@3";
+  schema: "left-hand-run@4";
   engine: string;
   seed: number;
   ticks: number;
@@ -204,13 +205,14 @@ export function createGame(seed = 1): State {
     }),
   );
   const s: State = {
-    schema: "left-hand@3",
+    schema: "left-hand@4",
     engine: FRAMEWORK_VERSION,
     seed,
     rng: seed,
     tick: 0,
     nightTick: 0,
     hasMoved: false,
+    returningHome: false,
     exposureNights: 0,
     talkNights: 0,
     thankedNights: 0,
@@ -241,8 +243,7 @@ export function createGame(seed = 1): State {
     assistedWell: false,
     cold: 0,
     outcome: "",
-    status:
-      "Prepare one envelope for Idris and Samira. Choose their door or the well box.",
+    status: `Prepare one envelope for Idris and Samira. Tariq walks the ${openingRoutine(seed).lane} lane; ${openingRoutine(seed).firstWitness === "tariq" ? "Tariq" : "Danyal"} is the first neighbour you can meet. Your route and lantern change where he sees you. Choose their door or the well box.`,
     morningLines: [],
     history: [],
     inputs: [],
@@ -290,29 +291,34 @@ function chooseRoutines(s: State) {
     ];
     const choice = decide(p, offers);
     a.routine =
-      choice.chosenAffordanceId === "well"
+      a.id !== "tariq" && choice.chosenAffordanceId === "well"
         ? "checking the well"
         : "walking the lane";
   }
 }
-/** Tariq's lane walk leads away from the tile outside Yusuf's home, so a dark
- * exit is possible without a map-aware route. Most nights he walks east; on
- * about one night in three he walks north up the middle lane. The choice comes
- * from the seeded routine offset (no extra RNG draw); Danyal's walk is unchanged. */
-const TARIQ_LANES: Point[] = [
-  { x: 12, y: 15 },
-  { x: 12, y: 15 },
-  { x: 7, y: 9 },
-];
+/** Seeded public opening facts also let Play again choose a visibly different run. */
+export function openingRoutine(seed: number) {
+  return {
+    lane: (seed >>> 0) % 2 === 0 ? "east" : "north",
+    firstWitness: Math.floor((seed >>> 0) / 2) % 2 === 0 ? "tariq" : "danyal",
+  } as const;
+}
+function expectedWitness(s: State): string {
+  const first = openingRoutine(s.seed).firstWitness;
+  return s.night % 2 === 1 ? first : first === "tariq" ? "danyal" : "tariq";
+}
 function laneTarget(s: State, id: string): Point {
   return id === "tariq"
-    ? required(TARIQ_LANES[s.routineOffset % TARIQ_LANES.length])
+    ? openingRoutine(s.seed).lane === "east"
+      ? { x: 12, y: 15 }
+      : { x: 7, y: 9 }
     : { x: 7, y: 13 };
 }
 function startNight(s: State) {
   s.phase = "night";
   s.nightTick = 0;
   s.hasMoved = false;
+  s.returningHome = false;
   s.player = { ...HOME, lantern: true };
   s.cold = 0;
   s.deliveredTonight = false;
@@ -352,11 +358,8 @@ function encounter(
   sight: Witness["sight"] = s.envelopePlaced ? "empty-handed" : "carrying",
 ) {
   if (s.witness) return;
-  // A neighbour comes around the corner once each night. This authored encounter
-  // is unavoidable; ordinary light and LOS determine the rest of the visible map.
-  const id =
-    visibleId ??
-    ((s.seed + s.night + s.routineOffset) % 2 ? "danyal" : "tariq");
+  // One seeded neighbour can witness this night; route and light decide where.
+  const id = visibleId ?? expectedWitness(s);
   const a = required(s.actors.find((a) => a.id === id));
   const p = required(s.people.find((p) => p.id === id));
   const adjacent = required(
@@ -403,13 +406,15 @@ function encounter(
     id === "danyal"
       ? sight === "empty-handed"
         ? "Danyal raises his lantern. “I saw you on the lane.”"
-        : "Danyal raises his lantern. “I saw your envelope.”"
+        : sight === "carrying"
+          ? "Danyal raises his lantern. “I see you carrying an envelope.”"
+          : "Danyal raises his lantern. “I saw you leave the envelope.”"
       : sight === "empty-handed"
         ? "Tariq turns. “Out late, Yusuf?”"
         : "Tariq turns. “Is that for Idris?”";
   s.status = repeat
     ? `${a.reaction} He promised once to keep quiet. Seeing you again, he will tell people what he saw, whatever you say. The dawn clock waits for your reply.`
-    : `${a.reaction} ${canAsk(s.witness) ? "Explain, keep quiet, or ask him not to tell" : "Explain or keep quiet"}. The dawn clock waits for your reply.`;
+    : `${a.reaction} ${canAsk(s.witness) ? "Explain, keep quiet, joke, or ask him not to tell" : "Explain, keep quiet, or joke"}. The dawn clock waits for your reply.`;
 }
 /** Asking is offered only when the sighting would cost the family's privacy
  * (he saw the envelope left, or Tariq has a guess) and he has not promised before. */
@@ -476,16 +481,34 @@ function recover(s: State, choice: Reply) {
       },
     ]);
   }
+  if (choice === "joke") {
+    s.conversationTicksRemaining = 10;
+    perceive(p, [
+      {
+        at: p.now,
+        channel: "told",
+        kind: "honest-joke",
+        actorId: "yusuf",
+        targetId: p.id,
+        near: true,
+        salience: 0.5,
+        summary:
+          "Yusuf joked: ‘At this hour, even my shadow wants to go home.’ He named nobody and denied nothing.",
+      },
+    ]);
+  }
   s.status =
-    choice === "ask"
-      ? "You ask him to keep what he saw to himself, and you name nobody. It takes 1 second. He promises, this once: if he sees you out again, he will tell people."
-      : choice === "explain"
-        ? "You spend 3 seconds naming Idris and Samira and agreeing how to help them. Your neighbour will help, but the family’s need is now named."
-        : s.witness.sight === "leaving"
-          ? "You keep quiet. Your neighbour saw you leave the envelope and will say so."
-          : s.witness.explanation
-            ? "You keep quiet. Tariq will still tell people his own guess, but nobody can confirm it."
-            : "You keep quiet. Your neighbour will tell only what he saw.";
+    choice === "joke"
+      ? "‘At this hour, even my shadow wants to go home.’ You name nobody and deny nothing. The joke takes 1 second. He can still repeat what he saw or guessed."
+      : choice === "ask"
+        ? "You ask him to keep what he saw to himself, and you name nobody. It takes 1 second. He promises, this once: if he sees you out again, he will tell people."
+        : choice === "explain"
+          ? "You spend 3 seconds naming Idris and Samira and agreeing how to help them. Your neighbour will help, but the family’s need is now named."
+          : s.witness.sight === "leaving"
+            ? "You keep quiet. Your neighbour saw you leave the envelope and will say so."
+            : s.witness.explanation
+              ? "You keep quiet. Tariq will still tell people his own guess, but nobody can confirm it."
+              : "You keep quiet. Your neighbour will tell only what he saw.";
 }
 /** Warmth runs out after this many hidden-lantern ticks (lit ticks warm twice as fast). */
 export const COLD_LIMIT = 420;
@@ -557,7 +580,9 @@ function recap(s: State, w: Witness | null): string {
       ? "You explained."
       : w.recovered === "ask"
         ? "You asked him not to tell."
-        : "You kept quiet.";
+        : w.recovered === "joke"
+          ? "You joked, naming nobody and denying nothing."
+          : "You kept quiet.";
   return `${route} ${name} saw you ${seen} ${where(w.place)}. ${reply}`;
 }
 function morning(s: State, reason: string, rescued = false) {
@@ -807,13 +832,39 @@ function receiveAid(s: State) {
       ? "Samira takes the envelope at her door. The help remains theirs. Return home."
       : "Danyal collects the envelope and takes it to Samira. The help remains theirs. Return home.";
 }
+/** Shortest walk home, one tile every four fixed ticks; never teleport or stop time. */
+function homewardStep(start: Point): Point {
+  const queue = [{ point: start, first: start }];
+  const seen = new Set([`${start.x},${start.y}`]);
+  for (const { point, first } of queue) {
+    if (distance(point, HOME) <= 1) return first;
+    for (const [dx, dy] of [
+      [0, 1],
+      [-1, 0],
+      [1, 0],
+      [0, -1],
+    ] as const) {
+      const next = { x: point.x + dx, y: point.y + dy };
+      const key = `${next.x},${next.y}`;
+      if (isWall(next.x, next.y) || seen.has(key)) continue;
+      seen.add(key);
+      queue.push({ point: next, first: first === start ? next : first });
+    }
+  }
+  return start;
+}
 function deliver(s: State) {
   if (s.envelopePlaced) {
     s.status = s.deliveredTonight
       ? "Tonight’s envelope is delivered. Return to your home."
       : distance(s.player, HOME) <= 1
         ? "You are home. Danyal has not collected the envelope yet; wait for him, then go inside."
-        : "Danyal is on his way to collect the envelope. You may start walking home.";
+        : "Danyal is on his way to collect the envelope. You are walking home; a direction key stops the walk.";
+    if (distance(s.player, HOME) > 1) {
+      s.returningHome = true;
+      s.status =
+        "You are walking home. The clock and cold still run. A direction key stops the walk.";
+    }
     return;
   }
   const target = s.route === "door" ? DOOR : WELL;
@@ -850,7 +901,7 @@ function normalized(c: Command): Command {
     throw new Error("Unknown route");
   if (
     c.type === "recover" &&
-    !["explain", "keepquiet", "ask"].includes(c.choice)
+    !["explain", "keepquiet", "ask", "joke"].includes(c.choice)
   )
     throw new Error("Unknown recovery");
   if (
@@ -927,6 +978,7 @@ export function step(s: State, command?: Command): State {
     if (command.type === "recover") recover(s, command.choice);
     else if (!s.recoveryPending) {
       if (command.type === "move") {
+        s.returningHome = false;
         const p = { x: s.player.x + command.dx, y: s.player.y + command.dy };
         if (!isWall(p.x, p.y)) {
           Object.assign(s.player, p);
@@ -948,6 +1000,20 @@ export function step(s: State, command?: Command): State {
   required(s.actors[0]).y = s.player.y;
   if (s.phase === "night") {
     if (conversing) s.conversationTicksRemaining--;
+    if (s.returningHome && !s.recoveryPending && !conversing) {
+      if (distance(s.player, HOME) <= 1) {
+        s.returningHome = false;
+        if (s.deliveredTonight) {
+          morning(s, "You returned home. The household keeps the help.");
+          return s;
+        } else
+          s.status =
+            "You are home. Wait for Danyal to collect the envelope, then go inside.";
+      } else if (s.nightTick % 4 === 0) {
+        Object.assign(s.player, homewardStep(s.player));
+        Object.assign(required(s.actors[0]), { x: s.player.x, y: s.player.y });
+      }
+    }
     if (!s.recoveryPending) s.nightTick++;
     if (!s.recoveryPending && (s.nightTick + s.routineOffset) % 20 === 0) {
       for (const a of s.actors.filter(
@@ -975,17 +1041,32 @@ export function step(s: State, command?: Command): State {
       s.cold += s.player.lantern ? -Math.min(s.cold, 2) : 1;
     if (s.wellPendingTick !== null && s.nightTick >= s.wellPendingTick)
       receiveAid(s);
-    if (!s.witness && s.hasMoved && s.nightTick >= 10 && s.player.y < 13) {
+    // F-1623: no automatic stop at Home. The route changes the sighting area;
+    // hiding the lantern leaves actual patrol light and delivery as the triggers.
+    const sightingY =
+      s.route === "well"
+        ? s.player.lantern
+          ? 9
+          : 7
+        : s.player.lantern
+          ? 6
+          : 4;
+    if (
+      !s.witness &&
+      s.hasMoved &&
+      s.nightTick >= 10 &&
+      s.player.y <= sightingY
+    ) {
       const visible = s.actors.find(
         (a) =>
-          (a.id === "danyal" || a.id === "tariq") &&
+          a.id === expectedWitness(s) &&
           distance(a, s.player) <= 4 &&
           lit(s, s.player) &&
           los(a, s.player),
       );
       if (visible) encounter(s, visible.id);
     }
-    // Only a real sighting or a delivery can trigger a witness; never invent an envelope at home.
+    // A sighting or delivery can trigger a witness, never waiting beside Home.
     if (!s.recoveryPending && s.cold >= COLD_LIMIT)
       morning(
         s,
@@ -1130,7 +1211,7 @@ export function hash(s: State): string {
 }
 export function exportRun(s: State): Run {
   return copy({
-    schema: "left-hand-run@3",
+    schema: "left-hand-run@4",
     engine: s.engine,
     seed: s.seed,
     ticks: s.tick,
@@ -1141,7 +1222,7 @@ export function exportRun(s: State): Run {
 }
 export function replayRun(run: Run): State {
   if (
-    run.schema !== "left-hand-run@3" ||
+    run.schema !== "left-hand-run@4" ||
     run.engine !== FRAMEWORK_VERSION ||
     !Number.isSafeInteger(run.ticks) ||
     run.ticks < 0

@@ -26,7 +26,7 @@ A finite time window, two routes, lighting, seed-varied witness routines and one
 
 Godot 4.7.2 Compatibility single-threaded web renderer, TypeScript 7.0.2 strict with noUncheckedIndexedAccess, HF exactly 3.2.0, Node 26.12.0, pnpm 12.14.0 without hoisting. Godot holds only a drawing projection. Host fixed 10 Hz ticks and stamped input log own movement, light, weather, time and full HF Persons and RNGs. The state hash includes these. Replaying includes evening and recovery choices. The owner wants Godot learnings; this is sufficient reason to choose it. The spike did not prove deployed gzip packaging or physical phone performance. Brain consultation found no index at ~/code/brain/promoted/index.md.
 
-HF owns actors: decisions, witness memory, belief reception, relationship effects and waking. Game rules own space, cold, deadlines and delivery. No HF implementation is copied into the game. The immutable lab-client 0.4.15 artifact supplies default-on recording, the first-visit notice and feedback with I'm stopping / I'm confused. Tools and exports require ?lab=1.
+HF owns actors: decisions, witness memory, belief reception, relationship effects and waking. Game rules own space, cold, deadlines and delivery. No HF implementation is copied into the game. The immutable lab-client 0.4.15 artifact supplies default-on recording, the first-visit notice and feedback with I'm stopping / I'm confused. Every gameplay feature is public. Download run and Verify replay sit in a collapsed Debug item beside recording and privacy controls; no query string is required.
 
 ## Cast
 
@@ -73,18 +73,18 @@ A full-width Godot village sits between a short spoken line and thumb-sized dire
   - F-1638: separate Explain and Keep quiet. Target 2026-11-10.
 - Owner panel and same-tester retest: coordinator after lab round readiness; review 2026-11-03.
 - Lab-panel retest `retests-1027c` (2026-10-27, build `c0f3e8a`, iteration 2): **finished** ([playtest](games/lefthand-playtest-2026-10-27-panel-retest.md)). 1 keep, 12 mixed, 2 quit (one TOOL). F-1626 to F-1631 met or mostly met; the residuals below.
-  - F-2153 (blocking, new): Play again opens on the same evening; give it a new seed that changes Tariq's lane and the first witness, and say what differs. Target 2026-11-10. `retests-1027c`.
-  - F-1623: still the same stop near Home on most nights, whatever the route or lantern; now in three return conditions. Target 2026-11-03. `retests-1027c`.
-  - F-1624: bottom arrow row cut at 1280x800 with the recording notice open; on the phone the hidden-lantern label stacks the buttons and pushes the arrows below the fold; Danyal's label over "Well box". Target 2026-11-03. `retests-1027c`.
+  - F-2153 (blocking, new): **Fixed in the owner-authorized retest follow-up below.** Play again opens on the same evening; give it a new seed that changes Tariq's lane and the first witness, and say what differs. Target 2026-11-10. `retests-1027c`.
+  - F-1623: **Fixed in the owner-authorized retest follow-up below.** still the same stop near Home on most nights, whatever the route or lantern; now in three return conditions. Target 2026-11-03. `retests-1027c`.
+  - F-1624: **Fixed in the owner-authorized retest follow-up below.** bottom arrow row cut at 1280x800 with the recording notice open; on the phone the hidden-lantern label stacks the buttons and pushes the arrows below the fold; Danyal's label over "Well box". Target 2026-11-03. `retests-1027c`.
   - F-1621: the route prompt still says "marked delivery tile"; draw the well as a delivery box. Target 2026-11-03. `retests-1027c`.
   - F-2154: "1 steps" in the morning report. Target 2026-11-03. `retests-1027c`.
   - F-1628: say when a neighbour's stop cost the night; give seconds on every desktop failure. Target 2026-11-10. `retests-1027c`.
   - F-1629: show the highlighted-tile rule at night start; thicken the teal outline at 360 px. Target 2026-11-10. `retests-1027c`.
   - F-1630: show the seconds of warmth left on the bar. Target 2026-11-10. `retests-1027c`.
-  - F-1631: a joke reply at the neighbour's question (a lie is excluded by the design rule); needs owner input. Target 2026-11-10. `retests-1027c`.
+  - F-1631: **Fixed in the owner-authorized retest follow-up below.** a joke reply at the neighbour's question (a lie is excluded by the design rule); needs owner input. Target 2026-11-10. `retests-1027c`.
   - F-1632: walk against the dawn clock, unreproduced (phone tap median 3.2 s, desktop key 2.8 s in op_ms; no session at 4.6 s or more per step delivered). Hold-to-walk or tap-to-go. Target 2026-11-10. `retests-1027c`.
-  - F-1625: Danyal's "I saw your envelope" before anything is left. Target 2026-11-10. `retests-1027c`.
-  - F-1634: Return home does nothing far from Home. Target 2026-11-10. `retests-1027c`.
+  - F-1625: **Fixed in the owner-authorized retest follow-up below.** Danyal's "I saw your envelope" before anything is left. Target 2026-11-10. `retests-1027c`.
+  - F-1634: **Fixed in the owner-authorized retest follow-up below.** Return home does nothing far from Home. Target 2026-11-10. `retests-1027c`.
   - F-1635: "Tonight's envelope stays with the household" reads as a failed delivery; rewrite it. Target 2026-11-10. `retests-1027c`.
   - F-1636: contradicting copy, new instances ("now takes 3 seconds", the Explain-then-6-seconds evening, the "dignity" ending on no delivery, the lantern status line). Target 2026-11-10. `retests-1027c`.
   - F-1637: Rosa's two long sentences, unchanged. Target 2026-11-10. `retests-1027c`.
@@ -132,3 +132,17 @@ This cycle fixes the six blocking asks from the lab-panel round (F-1626 to F-163
 **Schema.** State is `left-hand@3` and runs are `left-hand-run@3`: new state fields and a new reply. Exports from this build replay exactly. `@2` exports from 6c34992 and earlier are refused as "Incompatible run" (start fresh). This follows the 4.0 direction and the e6849df precedent.
 
 **Lab artifacts.** Client 0.4.15 is vendored. Kit 0.5.17 is not: The Left Hand has never depended on the kit. Its recording notice sits in the page flow and never covers a control. 818c352 fixed the kit's notice covering controls, so that fix does not apply here.
+
+## Owner-authorized retest follow-up (2026-10-27)
+
+Scope is F-1623, F-1624, F-2153, F-1634, F-1625 and F-1631 from `retests-1027c`, plus the no-flags direction. The owner accepts jokes: "Jokes are fine". Lies remain excluded. Other Deferred items keep their recorded targets. Playtests and panel runs remain deferred by the owner.
+
+- Neighbours meet Yusuf farther from Home. The route and lantern change the encounter distance. The seed chooses Tariq's lane and the first neighbour; ordinary visibility still matters at that encounter distance. Delivery still produces a witness.
+- Play again changes both opening choices even if the browser supplies the same random number. The evening names Tariq's new lane and the first neighbour.
+- Return home starts a shortest-path walk after delivery. Each step spends dawn time and warmth as manual movement does. A direction button cancels the walk. It never teleports Yusuf or extends the night.
+- Before the envelope is left, Danyal says he sees Yusuf carrying it. Afterward he distinguishes seeing an envelope left from seeing Yusuf empty-handed.
+- Joke is an honest reply about the cold. It costs one second, names nobody and changes neither what the witness saw nor Tariq's guess. It grants no privacy promise.
+- The night layout reserves space for controls with the recording notice open. Lantern buttons remain on one row. The Godot renderer avoids overlapping person and place labels.
+- Debug is collapsed and contains Download run and Verify replay. Gameplay and diagnostics no longer require `?lab`.
+
+Current state and run schemas advance to `left-hand@4` and `left-hand-run@4`. Current exports replay exactly. Earlier exports require starting fresh. Dawn, cold, collection delays and privacy consequences remain active; careless play can still lose.

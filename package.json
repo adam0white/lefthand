@@ -16,7 +16,8 @@
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.worker.json",
     "test": "vitest run",
     "e2e": "playwright test",
-    "check": "pnpm lint && pnpm typecheck && pnpm test"
+    "check": "pnpm lint && pnpm typecheck && pnpm test",
+    "deploy": "node scripts/deploy.mjs"
   },
   "dependencies": {
     "@adam0white/human-framework": "3.2.0",
