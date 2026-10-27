@@ -13,6 +13,9 @@ const INK: Color = Color("111f35")
 const SNOW: Color = Color("a8c1cf")
 const GOLD: Color = Color("d7a345")
 const COATS: Array[Color] = [Color("83b6b0"), Color("c59ab7"), Color("9fafd1"), Color("b9b58b")]
+# Only Yusuf wears this ring and label; no neighbour uses white or teal.
+const YOU: Color = Color("ffffff")
+const TARGET: Color = Color("5fe0c4")
 
 func _ready() -> void:
     font = ThemeDB.fallback_font
@@ -96,6 +99,10 @@ func _draw() -> void:
         # Host marks the exact contribution of Yusuf's lantern.
         if bool(tile.get("playerLit", false)):
             draw_rect(Rect2(point + Vector2.ONE * 2.0, Vector2.ONE * (cell - 4.0)), Color("ffe4a0"), false, 1.1)
+        # Host marks the tiles where the current action works (marker or directly beside it).
+        if bool(tile.get("target", false)):
+            draw_rect(Rect2(point + Vector2.ONE * 1.5, Vector2.ONE * (cell - 3.0)), Color(TARGET, 0.18))
+            draw_rect(Rect2(point + Vector2.ONE * 1.5, Vector2.ONE * (cell - 3.0)), TARGET, false, 2.0)
         receipt.append({"x": x, "y": y, "lit": lit})
     # Roof decoration is derived from wall components, never used for lighting.
     var visited: Dictionary = {}
@@ -120,9 +127,13 @@ func _draw() -> void:
         for roof_y: int in range(low.y, high.y + 1, 2):
             for roof_x: int in range(low.x, high.x + 1, 2):
                 roof(Vector2i(roof_x, roof_y), Vector2i(mini(roof_x + 1, high.x), mini(roof_y + 1, high.y)))
+    var route: String = str(frame.get("route", "door"))
+    var night: bool = str(frame.get("phase", "")) == "night"
     landmark("home", "Home")
-    landmark("door", "Door · deliver beside marker")
-    landmark("well", "Well")
+    # On a well night the door is just a house; its label would compete with the well.
+    landmark("door", "Their door", not night or route == "door")
+    var collect: int = int(ceil(float(frame.get("handoffRemaining", 0)) / 10.0))
+    landmark("well", "Danyal collects · %ds" % collect if bool(frame.get("deliveryPending", false)) else "Well box", not night or route == "well")
     var landmarks: Array = frame.get("landmarks", [])
     for entry: Variant in landmarks:
         if entry is Dictionary:
@@ -147,7 +158,17 @@ func _draw() -> void:
         label(name_text, name_point, Color("e1e5df"), name_size)
     var player: Dictionary = frame.get("player", {})
     if not player.is_empty():
-        figure(at(float(player.get("x", 0)) + 0.5, float(player.get("y", 0)) + 0.5), Color("e4a74a"), bool(player.get("lantern", false)), true)
+        var you: Vector2 = at(float(player.get("x", 0)) + 0.5, float(player.get("y", 0)) + 0.5)
+        draw_circle(you, cell * 0.36, Color(YOU, 0.16))
+        draw_arc(you, cell * 0.36, 0.0, TAU, 28, YOU, 2.5, true)
+        figure(you, Color("e4a74a"), bool(player.get("lantern", false)), true)
+        var you_size: int = maxi(10, int(cell * 0.4))
+        var you_width: float = font.get_string_size("You", HORIZONTAL_ALIGNMENT_LEFT, -1, you_size).x
+        var you_point: Vector2 = you + Vector2(0, -cell * 0.62)
+        var you_box: StyleBoxFlat = make_label_style()
+        you_box.bg_color = YOU
+        draw_style_box(you_box, Rect2(you_point - Vector2(you_width / 2.0 + 4, you_size), Vector2(you_width + 8, you_size + 4)))
+        label("You", you_point, INK, you_size)
     # Snowfall is decorative and has no simulation or lighting effect.
     for index: int in range(42):
         var sx: float = fposmod(index * 73.3 + sin(elapsed * 0.4 + index) * 10.0, viewport.x)
@@ -187,7 +208,7 @@ func figure(point: Vector2, coat: Color, lantern: bool, awake: bool, reacting: b
 func draw_shadow(point: Vector2) -> void:
     draw_circle(point + Vector2(0, cell * 0.16), cell * 0.18, Color(0.02, 0.05, 0.09, 0.7))
 
-func landmark(key: String, title: String) -> void:
+func landmark(key: String, title: String, labelled: bool = true) -> void:
     var value: Variant = frame.get(key)
     if not value is Dictionary:
         var landmarks: Array = frame.get("landmarks", [])
@@ -198,7 +219,7 @@ func landmark(key: String, title: String) -> void:
     if not value is Dictionary:
         return
     var place: Dictionary = value
-    draw_landmark(place, key, title)
+    draw_landmark(place, key, title if labelled else "")
 
 func draw_landmark(place: Dictionary, key: String, title: String) -> void:
     var point: Vector2 = at(float(place.get("x", 0)) + 0.5, float(place.get("y", 0)) + 0.5)
@@ -218,6 +239,8 @@ func draw_landmark(place: Dictionary, key: String, title: String) -> void:
         draw_circle(point - Vector2(0, cell * 0.15), cell * 0.32, Color("a8bec7"))
         draw_line(point - Vector2(0, cell * 0.55), point - Vector2(0, cell * 0.42), Color("e1c793"), 1.2)
         draw_rect(Rect2(point + Vector2(cell * 0.39, -cell * 0.7), Vector2(cell * 0.13, cell)), Color("b6c9cf"))
+    if title == "":
+        return
     var text_size: int = maxi(10, int(cell * 0.38))
     var text_width: float = font.get_string_size(title, HORIZONTAL_ALIGNMENT_LEFT, -1, text_size).x
     var center: Vector2 = point + Vector2(0, cell * (1.45 if key == "well" else 0.84))

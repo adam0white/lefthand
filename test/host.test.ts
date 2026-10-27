@@ -287,7 +287,7 @@ describe("authoritative host", () => {
       command(s, { type: "next" });
     }
     expect(s.phase).toBe("ended");
-    expect(s.outcome).toContain("at least two");
+    expect(s.outcome).toContain("on all three nights");
     expect(s.history).toHaveLength(3);
     expect(s.people.every((p) => p.body.alive)).toBe(true);
     const log = exportRun(s),
@@ -501,4 +501,132 @@ test("quiet door nights end with the household thanking Yusuf", async () => {
   expect(s.exposureNights).toBe(0);
   expect(s.ending).toBe("thanked");
   expect(s.outcome).toContain("Idris thanked him quietly");
+});
+
+describe("panel fix cycle (F-1626 to F-1631)", () => {
+  const quietly = (s: State, choice: "keepquiet" | "ask" = "keepquiet") => {
+    if (s.recoveryPending) step(s, { type: "recover", choice });
+    while (s.conversationTicksRemaining > 0) step(s);
+  };
+  test("only the marker and the tiles directly beside it count; corner to corner is refused", () => {
+    const s = createGame(1);
+    step(s, { type: "plan", route: "well" });
+    const targets = projection(s)
+      .tiles.filter((t) => t.target)
+      .map((t) => `${t.x},${t.y}`)
+      .sort();
+    expect(targets).toEqual(["3,7", "4,6", "4,7", "4,8", "5,7"]);
+    s.player = { x: 5, y: 6, lantern: false };
+    step(s, { type: "act" });
+    expect(s.envelopePlaced).toBe(false);
+    expect(s.status).toContain("corner to corner");
+  });
+
+  test("a failed delivery names its cause, and the ending names the nights", () => {
+    const missed = createGame(13);
+    command(missed, { type: "plan", route: "well" });
+    walk(missed, 4, 7);
+    while (missed.nightTick < 595) {
+      quietly(missed);
+      step(missed);
+    }
+    quietly(missed);
+    step(missed, { type: "act" });
+    while (missed.phase === "night") {
+      quietly(missed);
+      step(missed);
+    }
+    expect(missed.history[0]?.reason).toMatch(/Danyal needed \d+ more seconds/);
+    const far = createGame(7);
+    command(far, { type: "plan", route: "door" });
+    while (far.phase === "night") {
+      quietly(far);
+      step(far);
+    }
+    expect(far.history[0]?.reason).toMatch(
+      /before you left the envelope.*You were \d+ steps from the door/,
+    );
+    const s = createGame(4);
+    for (let night = 1; night <= 3; night++) {
+      command(s, { type: "plan", route: "well" });
+      if (night !== 2) {
+        walk(s, 4, 7);
+        command(s, { type: "act" });
+        walk(s, 7, 15);
+        command(s, { type: "act" });
+      } else
+        while (s.phase === "night") {
+          quietly(s);
+          step(s);
+        }
+      command(s, { type: "next" });
+    }
+    expect(s.outcome).toContain("on nights 1 and 3");
+  });
+
+  test("mornings name the route, the lantern and who saw Yusuf; Samira always knows a door giver", () => {
+    const s = createGame(1);
+    step(s, { type: "plan", route: "well" });
+    for (let i = 0; i < 10; i++) step(s);
+    for (let i = 0; i < 4 && !s.witness; i++)
+      step(s, { type: "move", dx: 0, dy: -1 });
+    quietly(s);
+    step(s, { type: "lantern" });
+    walk(s, 4, 7);
+    step(s, { type: "act" });
+    while (!s.deliveredTonight) step(s);
+    walk(s, 7, 15);
+    step(s, { type: "act" });
+    const line = (id: string) =>
+      s.morningLines.find((p) => p.id === id)?.line ?? "";
+    expect(line("yusuf")).toContain(
+      "You left the envelope at the well box with your lantern hidden. Tariq saw you",
+    );
+    expect(line("samira")).toContain("Danyal knocked");
+    expect(line("danyal")).toContain("Nobody can say for sure");
+    command(s, { type: "next" });
+    command(s, { type: "plan", route: "door" });
+    walk(s, 11, 3);
+    command(s, { type: "act" });
+    walk(s, 7, 15);
+    command(s, { type: "act" });
+    expect(line("yusuf")).toContain("at their door with your lantern lit");
+    expect(line("samira")).toContain("so I know it was him");
+    expect(line("idris")).toMatch(/saw Yusuf leave the envelope|named us/);
+  });
+
+  test("asking a neighbour not to tell works once; his next sighting is exposure", async () => {
+    const { policyCommand } = await import("../scripts/policies");
+    const s = createGame(1);
+    let refused = false;
+    while (s.phase !== "ended") {
+      if (s.recoveryPending && s.witness?.repeat && !refused) {
+        step(s, { type: "recover", choice: "ask" });
+        refused = s.recoveryPending;
+        continue;
+      }
+      step(
+        s,
+        s.recoveryPending && !s.witness?.repeat
+          ? { type: "recover", choice: "ask" }
+          : policyCommand(s, "careful"),
+      );
+    }
+    expect(refused).toBe(true);
+    const [first, second] = s.history;
+    expect(first?.witness?.recovered).toBe("ask");
+    expect(first).toMatchObject({ talk: false, exposed: false });
+    expect(
+      first?.lines.find((p) => p.id === first.witness?.id)?.line,
+    ).toContain("this once");
+    expect(second?.witness).toMatchObject({
+      id: first?.witness?.id,
+      repeat: true,
+    });
+    expect(second?.exposed).toBe(true);
+    expect(second?.lines.find((p) => p.id === "idris")?.line).toContain(
+      "after promising once to keep quiet",
+    );
+    expect(hash(replayRun(exportRun(s)))).toBe(hash(s));
+  });
 });

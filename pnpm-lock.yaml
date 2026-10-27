@@ -174,8 +174,8 @@ importers:
         specifier: 3.2.0
         version: 3.2.0
       '@adam0white/lab-client':
-        specifier: file:vendor/adam0white-lab-client-0.4.12.tgz
-        version: file:vendor/adam0white-lab-client-0.4.12.tgz
+        specifier: file:vendor/adam0white-lab-client-0.4.15.tgz
+        version: file:vendor/adam0white-lab-client-0.4.15.tgz
     devDependencies:
       '@biomejs/biome':
         specifier: 2.6.3
@@ -209,9 +209,9 @@ packages:
     resolution: {integrity: sha512-I/smuEJWiQPYd9rUEE4uhMNd48rEDX4VHDJxlixwQ/kAQJITNO3SCvKOJwlvsJXcqUjDstqUFeZnDifQFAWW4A==}
     engines: {node: '>=24'}
 
-  '@adam0white/lab-client@file:vendor/adam0white-lab-client-0.4.12.tgz':
-    resolution: {integrity: sha512-swY9SUnlXilB4O29mWhkFMxnnFEQ8qeug2uto5vYknZjt5c8U63DqpIAKPvuLooRU8K/XhbUyqVpcXPGeG91Dw==, tarball: file:vendor/adam0white-lab-client-0.4.12.tgz}
-    version: 0.4.12
+  '@adam0white/lab-client@file:vendor/adam0white-lab-client-0.4.15.tgz':
+    resolution: {integrity: sha512-hE6zVE3qg7TYWVJ1VRcf1+NssqGGdkUQzkYVFhaU14l4etEhWGSocsOIbE4AcjSdGORd6/lFsXpdzPenaJ3u5Q==, tarball: file:vendor/adam0white-lab-client-0.4.15.tgz}
+    version: 0.4.15
 
   '@biomejs/biome@2.6.3':
     resolution: {integrity: sha512-va/0xPku7wnfzv+D8Zpdm5uKiGJWiV8neqoEPnRjvNQQwhl4tVXS4fETs4H0CCB2rGeqJ4cu9y4iOZOnOYKAUA==}
@@ -1292,7 +1292,7 @@ snapshots:
 
   '@adam0white/human-framework@3.2.0': {}
 
-  '@adam0white/lab-client@file:vendor/adam0white-lab-client-0.4.12.tgz':
+  '@adam0white/lab-client@file:vendor/adam0white-lab-client-0.4.15.tgz':
     dependencies:
       '@adam0white/human-framework': 3.0.0
 

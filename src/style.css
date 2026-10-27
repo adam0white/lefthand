@@ -151,6 +151,51 @@ canvas {
 .action-row button {
   min-width: 135px;
 }
+.warmth {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 420px;
+  margin: 8px auto 0;
+}
+#cold-warning {
+  flex: 1;
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  font:
+    12px / 1.35 system-ui,
+    sans-serif;
+  color: #c8cdd0;
+}
+.warmth .bar {
+  flex: 0 0 34%;
+  height: 10px;
+  border: 1px solid #786748;
+  border-radius: 5px;
+  background: #0b1420;
+  overflow: hidden;
+}
+.warmth .bar i {
+  display: block;
+  height: 100%;
+  width: 100%;
+  background: #e4a74a;
+  transition: width 0.1s linear;
+}
+.warmth[data-level="low"] .bar i {
+  background: #8fb3c9;
+}
+.warmth[data-level="low"] #cold-warning {
+  color: #d7e6f0;
+}
+.warmth[data-level="danger"] .bar i {
+  background: #d9e9f5;
+}
+.warmth[data-level="danger"] #cold-warning {
+  color: #ffffff;
+  font-weight: 600;
+}
 .directions {
   display: grid;
   grid-template-columns: 56px 56px 56px;

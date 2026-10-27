@@ -8,7 +8,7 @@ Done for this slice means a complete three-night run with win and loss, replayab
 
 One delivery each night. The door is direct but lit. A labelled envelope in the well's covered delivery box reaches the named family through Danyal. The goal is aid reaching the family on at least two nights. Three deliveries is a stronger ending. Exposure changes Idris's pride, Samira's trust and later talk; it never cancels delivered help. Missing the dawn deadline or letting Yusuf become too cold can lose a delivery. Cold, exhaustion and household hunger are host rules. Every cold rescue removes 6 seconds from later nights and leaves Yusuf owing the neighbours the work they missed. Received aid remains received. No child dies. This slice does not need Yusuf's death either: someone brings him home.
 
-A finite time window, two routes, lighting, seed-varied witness routines and one recovery choice per night create decisions with costs. A delivery produces a witness contact. A lowered lantern at the covered well box can leave the witness seeing Yusuf empty-handed; light reveals the envelope, at the well or the door. Waiting at home produces no invented sighting. The player sees a reaction immediately. Danyal reports exactly what he saw; Tariq adds his explanation, labelled as his guess. Recovery can explain the errand or keep quiet. Explaining names the recipients, consumes 3 seconds of the displayed dawn window and builds witness trust that saves the normal 3-second collection delay. Each exposed night adds 3 seconds to later well collection while Samira arranges a private handoff. Keeping quiet costs no conversation time. Against Danyal it preserves privacy; against Tariq his guess still becomes village talk, but not lost trust (fairness pass below). Morning gives one plain line per person. Later nights retain social consequences.
+A finite time window, two routes, lighting, seed-varied witness routines and one recovery choice per night create decisions with costs. A delivery produces a witness contact. A lowered lantern at the covered well box can leave the witness seeing Yusuf empty-handed; light reveals the envelope, at the well or the door. Waiting at home produces no invented sighting. The player sees a reaction immediately. Danyal reports exactly what he saw; Tariq adds his explanation, labelled as his guess. Recovery can explain the errand, keep quiet, or ask the neighbour not to tell (panel fix cycle below). Explaining names the recipients, consumes 3 seconds of the displayed dawn window and builds witness trust that saves the normal 3-second collection delay. Each exposed night adds 3 seconds to later well collection while Samira arranges a private handoff. Keeping quiet costs no conversation time. Against Danyal it preserves privacy; against Tariq his guess still becomes village talk, but not lost trust (fairness pass below). Morning gives one plain line per person; Yusuf's line names the route, the lantern at the drop, who saw him and his reply. Later nights retain social consequences.
 
 ## Coordinator rulings (2026-10-26)
 
@@ -26,7 +26,7 @@ A finite time window, two routes, lighting, seed-varied witness routines and one
 
 Godot 4.7.2 Compatibility single-threaded web renderer, TypeScript 7.0.2 strict with noUncheckedIndexedAccess, HF exactly 3.2.0, Node 26.12.0, pnpm 12.14.0 without hoisting. Godot holds only a drawing projection. Host fixed 10 Hz ticks and stamped input log own movement, light, weather, time and full HF Persons and RNGs. The state hash includes these. Replaying includes evening and recovery choices. The owner wants Godot learnings; this is sufficient reason to choose it. The spike did not prove deployed gzip packaging or physical phone performance. Brain consultation found no index at ~/code/brain/promoted/index.md.
 
-HF owns actors: decisions, witness memory, belief reception, relationship effects and waking. Game rules own space, cold, deadlines and delivery. No HF implementation is copied into the game. The immutable lab-client0.4.12 artifact supplies default-on recording, the first-visit notice and feedback with I'm stopping / I'm confused. Tools and exports require ?lab=1.
+HF owns actors: decisions, witness memory, belief reception, relationship effects and waking. Game rules own space, cold, deadlines and delivery. No HF implementation is copied into the game. The immutable lab-client 0.4.15 artifact supplies default-on recording, the first-visit notice and feedback with I'm stopping / I'm confused. Tools and exports require ?lab=1.
 
 ## Cast
 
@@ -53,17 +53,17 @@ A full-width Godot village sits between a short spoken line and thumb-sized dire
   - Fix the "Danyal" label over "Well" and the desktop arrow buttons at the fold.
   - Stop Danyal saying "I saw your envelope" when he is the collector.
 - Lab-panel round `retests-1027b` (2026-10-27, build `6c34992`). ([playtest](games/lefthand-playtest-2026-10-27-panel.md)). Needs a fix cycle and a same-tester retest. Numbers come from the central F sequence; F-1621 to F-1625 are the earlier retest asks above.
-  - F-1621: draw the well marker, say "Stand beside the well", and hide the Door label on a well night. Target 2026-11-03.
+  - F-1621: partly done in the panel fix cycle. The teal tiles show the well, the door label is hidden on a well night, and the text says "Stand on a highlighted tile". Still open: a well drawing that reads as a delivery box. Target 2026-11-03.
   - F-1622: reduce stuck moves on the door row. Target 2026-11-10.
   - F-1623: start Tariq and Danyal farther from Home, and vary where they meet Yusuf. Target 2026-11-03.
   - F-1624: keep the arrows and Explain/Keep quiet above the fold at 1280x800, and stop the phone arrows moving when the text grows. Target 2026-11-03.
   - F-1625: stop Danyal saying "I saw your envelope" when he is the collector. Target 2026-11-10.
-  - F-1626 (blocking): label Yusuf "You" on the map. Target 2026-11-03.
-  - F-1627 (blocking): mornings name the route and whether Yusuf was seen; say why trust drops. Target 2026-11-03.
-  - F-1628 (blocking): a failed delivery names its cause; show a collection countdown; name the nights in the ending. Target 2026-11-03.
-  - F-1629 (blocking): show which tiles count as beside a marker; diagonals do not. Target 2026-11-03.
-  - F-1630 (blocking): a cold bar while the lantern is hidden. Target 2026-11-03.
-  - F-1631 (blocking): a third reply to the neighbour's question. Target 2026-11-10 (design work).
+  - F-1626 (blocking): **fixed in the panel fix cycle.** Yusuf has a white ring and a white "You" label; no neighbour uses white.
+  - F-1627 (blocking): **fixed in the panel fix cycle.** Yusuf's morning line names the route, the lantern at the drop, who saw him and his reply. Samira always says she knows a door giver. Danyal says when he collected from the well box. Each neighbour who saw nothing names his own round. When trust drops, Idris's and Samira's lines name the cause.
+  - F-1628 (blocking): **fixed in the panel fix cycle.** Each failure names its cause ("Danyal needed 4 more seconds", "You were 3 steps from the door", or the cold). The status line counts down the collection against dawn, and the well label shows the countdown on the map. The ending names the nights.
+  - F-1629 (blocking): **fixed in the panel fix cycle.** The tiles that count (the marker and the four tiles directly beside it) are drawn in teal, then Home after delivery. A corner-to-corner try says it does not count.
+  - F-1630 (blocking): **fixed in the panel fix cycle.** A warmth bar sits beside the lantern button all night. Its line says what lit and hidden cost, and warns from 12 hidden seconds onward. The evening and night-start text say an empty bar means being carried home. Leila's "numb hands slow movement" is not a rule and is not claimed.
+  - F-1631 (blocking): **fixed in the panel fix cycle.** A third honest reply, "Ask him not to tell", has its own morning consequence (rules below).
   - F-1632: hold-to-walk or tap-to-go on touch (unreproduced timing). Target 2026-11-10.
   - F-1633: greyed arrows with "Answer first" while a question is open. Target 2026-11-10.
   - F-1634: Return home works from any tile or says where to go. Target 2026-11-10.
@@ -86,3 +86,22 @@ Live play showed one ending for nearly every human-speed run: trust lost, with T
 - The door has a worldly upside. A door handoff with no neighbour seeing Yusuf leave the envelope is known only to the household: Idris can thank him quietly. Two such nights give the ending "they know it was you". The door stays farther and colder to reach than the well, and Samira always knows the giver.
 
 Endings now: the help reached them (private), they know it was you, the village is guessing, trust was lost, Yusuf needs care, the household needs more help.
+
+## Panel fix cycle (2026-10-27)
+
+This cycle fixes the six blocking asks from the lab-panel round (F-1626 to F-1631). It keeps the fairness pass rules and the difficulty.
+
+**Third reply: "Ask him not to tell".** Yusuf names nobody and tells no lie. He asks the neighbour to keep what he saw to himself.
+- It costs 1 second of the dawn clock.
+- The first time, that neighbour promises. He tells nobody that morning. The night is neither exposure nor village talk, even if he saw Yusuf leave the envelope or Tariq had a guess.
+- The promise holds only once. If the same neighbour sees Yusuf on a later night, he tells people whatever Yusuf says. That night is exposure, and asking again is refused.
+- Every night has a witness, so asking on night 1 or 2 is a bet that the other neighbour sees you next time. Asking on night 3 costs only the second. The ending says the neighbour still knows Yusuf has a secret.
+- Each neighbour is an HF person. The request reaches him as a `told` percept ("discretion-request"), and no morning account is told to the family.
+
+**Headless check (20 seeds per cell, the time is per tile, `claude-builds/lefthand-panel-fixes/speed.ts`).**
+- The four existing policies give the same endings before and after: careful sheltered 20/20/17 (+3 talked) at 400/600/900 ms, careless exposed 60/60, cold rescued 60/60.
+- Always asking is not dominant. Careful-ask is exposed in 20, 17 and 7 runs of 20 at 400/600/900 ms. Careless-ask is exposed in 60 of 60 runs at human speed.
+
+**Schema.** State is `left-hand@3` and runs are `left-hand-run@3`: new state fields and a new reply. Exports from this build replay exactly. `@2` exports from 6c34992 and earlier are refused as "Incompatible run" (start fresh). This follows the 4.0 direction and the e6849df precedent.
+
+**Lab artifacts.** Client 0.4.15 is vendored. Kit 0.5.17 is not: The Left Hand has never depended on the kit. Its recording notice sits in the page flow and never covers a control. 818c352 fixed the kit's notice covering controls, so that fix does not apply here.

@@ -45,6 +45,13 @@ test("controls, clock, pause menu and desktop evening fit", async ({
   const after = await page.evaluate(() => window.Lefthand.snapshot().nightTick);
   expect(after - before).toBeGreaterThanOrEqual(91);
   expect(after - before).toBeLessThanOrEqual(93);
+  // About nine hidden seconds empty part of the warmth bar beside the lantern.
+  await expect(page.locator("#cold-warning")).toContainText("hidden");
+  const warmth = await page
+    .locator("#warmth-fill")
+    .evaluate((node) => Number.parseFloat((node as HTMLElement).style.width));
+  expect(warmth).toBeGreaterThan(70);
+  expect(warmth).toBeLessThan(90);
   await page.locator("#menu-open").click();
   await expect(page.locator("#menu")).toHaveCSS(
     "background-color",
