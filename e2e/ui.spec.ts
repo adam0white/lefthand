@@ -20,7 +20,7 @@ test("controls, clock, pause menu and desktop evening fit", async ({
     }),
   );
   await page.clock.install();
-  await page.goto("/?lab=1");
+  await page.goto("/");
   await expect(page.locator("#loading")).toBeHidden();
   if ((page.viewportSize()?.width ?? 0) > 480) {
     const bottom = await page
@@ -29,14 +29,30 @@ test("controls, clock, pause menu and desktop evening fit", async ({
     expect(bottom).toBeLessThanOrEqual(page.viewportSize()?.height ?? 0);
   }
   await page.clock.pauseAt(await page.evaluate(() => Date.now() + 100));
+  // The first-visit notice is part of the height budget at both retest sizes.
+  await page.locator("#recording-notice").evaluate((node) => {
+    (node as HTMLElement).hidden = false;
+  });
   await page.locator("#route-door").click();
   await page.clock.runFor(100);
   await expect(page.locator("#lantern")).toHaveText("Lantern lit · hide (L)");
+  const arrowsBefore = await page.locator(".directions").boundingBox();
+  expect(arrowsBefore).not.toBeNull();
+  expect(
+    (arrowsBefore?.y ?? 0) + (arrowsBefore?.height ?? 0),
+  ).toBeLessThanOrEqual(page.viewportSize()?.height ?? 0);
+  const lanternBefore = await page.locator("#lantern").boundingBox();
+  const actBefore = await page.locator("#act").boundingBox();
+  expect(lanternBefore?.y).toBe(actBefore?.y);
   await page.locator("#lantern").click();
   await page.clock.runFor(100);
   await expect(page.locator("#lantern")).toHaveText(
     "Lantern hidden · light (L)",
   );
+  expect(await page.locator(".directions").boundingBox()).toEqual(arrowsBefore);
+  const lanternAfter = await page.locator("#lantern").boundingBox();
+  const actAfter = await page.locator("#act").boundingBox();
+  expect(lanternAfter?.y).toBe(actAfter?.y);
   const before = await page.evaluate(
     () => window.Lefthand.snapshot().nightTick,
   );
@@ -57,6 +73,12 @@ test("controls, clock, pause menu and desktop evening fit", async ({
     "background-color",
     "rgb(16, 28, 41)",
   );
+  await expect(page.locator("#debug")).not.toHaveAttribute("open", "");
+  await expect(page.locator("#download")).toBeHidden();
+  await page.locator("#debug summary").click();
+  await expect(page.locator("#download")).toBeVisible();
+  await page.locator("#verify").click();
+  await expect(page.locator("#menu-status")).toContainText("Replay verified:");
   const paused = await page.evaluate(
     () => window.Lefthand.snapshot().nightTick,
   );
