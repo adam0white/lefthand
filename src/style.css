@@ -445,9 +445,12 @@ form .choices {
 [data-phase="night"] .directions {
   margin-block: 6px;
 }
-#debug {
-  font-size: 14px;
+.privacy-debug {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
   margin-block: 12px;
+  font-size: 14px;
 }
 #debug summary {
   cursor: pointer;
