@@ -664,7 +664,7 @@ describe("panel fix cycle (F-1626 to F-1631)", () => {
   test("runs from the previous schema are refused, not misreplayed", () => {
     const run = exportRun(createGame(1));
     expect(() =>
-      replayRun({ ...run, schema: "left-hand-run@2" } as never),
+      replayRun({ ...run, schema: "left-hand-run@3" } as never),
     ).toThrow("Incompatible run");
   });
 });

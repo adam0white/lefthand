@@ -92,3 +92,46 @@ test("controls, clock, pause menu and desktop evening fit", async ({
   await page.clock.runFor(100);
   expect(await page.evaluate(() => scrollY)).toBe(scroll);
 });
+
+test("Play again describes a different seeded opening", async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, "doNotTrack", { value: "1" });
+    localStorage.setItem("lefthand-notice-v1", "1");
+    // Repeated entropy reproduces the old same-opening bug deterministically.
+    crypto.getRandomValues = ((array: Uint32Array) => {
+      array.fill(17);
+      return array;
+    }) as typeof crypto.getRandomValues;
+  });
+  await page.route("**/engine.json", (route) =>
+    route.fulfill({
+      json: { executable: "stub", script: "/stub-engine.js", pack: "stub" },
+    }),
+  );
+  await page.route("**/stub-engine.js", (route) =>
+    route.fulfill({
+      contentType: "application/javascript",
+      body: "window.Engine = class { async startGame() { window.HFBridge.ready(); } };",
+    }),
+  );
+  await page.clock.install();
+  await page.goto("/");
+  await expect(page.locator("#loading")).toBeHidden();
+  await page.clock.pauseAt(await page.evaluate(() => Date.now() + 100));
+  const before = await page.evaluate(() => window.Lefthand.snapshot().seed);
+  for (let night = 1; night <= 3; night++) {
+    await page.locator("#route-well").click();
+    await page.clock.runFor(61000);
+    await expect(page.locator("#morning")).toBeVisible();
+    await page.locator("#next").click();
+    await page.clock.runFor(100);
+  }
+  await expect(page.locator("#ending")).toBeVisible();
+  await page.locator("#again").click();
+  await expect(page.locator("#evening")).toBeVisible();
+  const after = await page.evaluate(() => window.Lefthand.snapshot().seed);
+  expect(after).not.toBe(before);
+  expect(after & 3).toBe((before ^ 3) & 3);
+  await expect(page.locator("#status")).toContainText("Tariq walks");
+  await expect(page.locator("#status")).toContainText("first neighbour");
+});

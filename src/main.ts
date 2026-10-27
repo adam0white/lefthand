@@ -16,6 +16,7 @@ import {
   step,
   upcomingWellSeconds,
 } from "./host";
+import { restartGame } from "./restart";
 import "./style.css";
 
 const element = <T extends HTMLElement>(id: string): T => {
@@ -124,6 +125,9 @@ function update() {
           }`,
     );
     element<HTMLButtonElement>("ask").hidden = !canAsk(w);
+    element("recovery-line").append(
+      " Make a joke (1 second): name nobody; what he saw and guessed stays the same.",
+    );
   }
   show("walking", !state.recoveryPending);
   setText(
@@ -140,7 +144,7 @@ function update() {
   setText(
     "status",
     state.conversationTicksRemaining > 0
-      ? `${state.witness?.recovered === "ask" ? "Yusuf asks for his silence" : "Yusuf explains the errand"}. ${conversationSeconds} ${conversationSeconds === 1 ? "second of conversation remains" : "seconds of conversation remain"}; dawn is getting closer.`
+      ? `${state.witness?.recovered === "ask" ? "Yusuf asks for his silence" : state.witness?.recovered === "joke" ? "Yusuf jokes about the cold" : "Yusuf explains the errand"}. ${conversationSeconds} ${conversationSeconds === 1 ? "second of conversation remains" : "seconds of conversation remain"}; dawn is getting closer.`
       : view.deliveryPending && phase === "night" && !state.recoveryPending
         ? `Danyal collects the envelope from the well box in ${collectSeconds} ${collectSeconds === 1 ? "second" : "seconds"}; dawn is in ${dawnSeconds}.${collectSeconds > dawnSeconds ? " Dawn will come first, so it will not reach them tonight." : " It must be collected before dawn to count."} You may start walking home.`
         : state.status,
@@ -247,7 +251,10 @@ function setMenu(open: boolean) {
 }
 function reset() {
   queue.length = 0;
-  state = createGame(crypto.getRandomValues(new Uint32Array(1))[0] ?? 1);
+  state = restartGame(
+    state.seed,
+    crypto.getRandomValues(new Uint32Array(1))[0] ?? 1,
+  );
   morningKey = "";
   lastStep = performance.now();
   show("new-confirm", false);
@@ -361,6 +368,7 @@ element("explain").onclick = () =>
 element("quiet").onclick = () =>
   enqueue({ type: "recover", choice: "keepquiet" });
 element("ask").onclick = () => enqueue({ type: "recover", choice: "ask" });
+element("joke").onclick = () => enqueue({ type: "recover", choice: "joke" });
 element("next").onclick = () => enqueue({ type: "next" });
 for (const button of document.querySelectorAll<HTMLButtonElement>(
   "[data-move]",
