@@ -72,6 +72,31 @@ A full-width Godot village sits between a short spoken line and thumb-sized dire
   - F-1637: split Rosa's two long sentences. Target 2026-11-10.
   - F-1638: separate Explain and Keep quiet. Target 2026-11-10.
 - Owner panel and same-tester retest: coordinator after lab round readiness; review 2026-11-03.
+- Lab-panel retest `retests-1027c` (2026-10-27, build `c0f3e8a`, iteration 2): **finished** ([playtest](games/lefthand-playtest-2026-10-27-panel-retest.md)). 1 keep, 12 mixed, 2 quit (one TOOL). F-1626 to F-1631 met or mostly met; the residuals below.
+  - F-2153 (blocking, new): Play again opens on the same evening; give it a new seed that changes Tariq's lane and the first witness, and say what differs. Target 2026-11-10. `retests-1027c`.
+  - F-1623: still the same stop near Home on most nights, whatever the route or lantern; now in three return conditions. Target 2026-11-03. `retests-1027c`.
+  - F-1624: bottom arrow row cut at 1280x800 with the recording notice open; on the phone the hidden-lantern label stacks the buttons and pushes the arrows below the fold; Danyal's label over "Well box". Target 2026-11-03. `retests-1027c`.
+  - F-1621: the route prompt still says "marked delivery tile"; draw the well as a delivery box. Target 2026-11-03. `retests-1027c`.
+  - F-2154: "1 steps" in the morning report. Target 2026-11-03. `retests-1027c`.
+  - F-1628: say when a neighbour's stop cost the night; give seconds on every desktop failure. Target 2026-11-10. `retests-1027c`.
+  - F-1629: show the highlighted-tile rule at night start; thicken the teal outline at 360 px. Target 2026-11-10. `retests-1027c`.
+  - F-1630: show the seconds of warmth left on the bar. Target 2026-11-10. `retests-1027c`.
+  - F-1631: a joke reply at the neighbour's question (a lie is excluded by the design rule); needs owner input. Target 2026-11-10. `retests-1027c`.
+  - F-1632: walk against the dawn clock, unreproduced (phone tap median 3.2 s, desktop key 2.8 s in op_ms; no session at 4.6 s or more per step delivered). Hold-to-walk or tap-to-go. Target 2026-11-10. `retests-1027c`.
+  - F-1625: Danyal's "I saw your envelope" before anything is left. Target 2026-11-10. `retests-1027c`.
+  - F-1634: Return home does nothing far from Home. Target 2026-11-10. `retests-1027c`.
+  - F-1635: "Tonight's envelope stays with the household" reads as a failed delivery; rewrite it. Target 2026-11-10. `retests-1027c`.
+  - F-1636: contradicting copy, new instances ("now takes 3 seconds", the Explain-then-6-seconds evening, the "dignity" ending on no delivery, the lantern status line). Target 2026-11-10. `retests-1027c`.
+  - F-1637: Rosa's two long sentences, unchanged. Target 2026-11-10. `retests-1027c`.
+  - F-1633: no sign when a key press is swallowed by a question. Target 2026-11-10. `retests-1027c`.
+  - F-1622: stuck moves by the houses; add a bump cue when a step is blocked. Target 2026-11-10. `retests-1027c`.
+  - F-1638: Explain and Keep quiet side by side; not seen this round. Target 2026-11-10. `retests-1027c`.
+  - F-2155: black map canvas at the start of a morning (desktop), blank map on the first phone screen. Target 2026-11-10. `retests-1027c`.
+  - F-2156: say the night's length and what shortened it at night start. Target 2026-11-10. `retests-1027c`.
+  - F-2157: a low-clock warning while walking. Target 2026-11-10. `retests-1027c`.
+  - F-2158: Tariq says "asked for discretion" after Explain, and repeats his question the next night. Target 2026-11-10. `retests-1027c`.
+  - F-2159: "Collection · 3s" is drawn like a button. Target 2026-11-10. `retests-1027c`.
+  - F-2160: mornings repeat word for word when the same night repeats. Target 2026-11-10. `retests-1027c`.
 
 ## Iteration 2 endings
 
