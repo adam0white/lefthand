@@ -291,7 +291,7 @@ function startNight(s: State) {
     samira.body.asleep = true;
   }
   chooseRoutines(s);
-  s.status = `Night ${s.night}: ${s.route === "door" ? "the family door is the longer walk. Samira takes the envelope at once, so she sees who brought it" : `the well box is closer. Danyal, who keeps the well, collects the envelope ${wellDelay(s) / 10} seconds after you leave it${s.assistedWell ? " (your earlier explanation already saves 3 seconds)" : ""}${s.exposureNights ? ", longer now because Samira waits to meet him alone" : ""}`}. Return home after delivery.${s.night === 1 ? " If any light reaches you (your lantern, a lamp or a neighbour’s lantern), a nearby neighbour can see you. Hiding your lantern helps you stay unseen, but the cold builds." : ""}${s.rescues ? ` Your rescue left you exhausted: tonight you have ${nightLimit(s) / 10} seconds before you must rest.` : ""}`;
+  s.status = `Night ${s.night}: ${s.route === "door" ? "Samira takes the envelope at her door, so she sees who brought it" : `Danyal, who keeps the well, collects the envelope ${wellDelay(s) / 10} seconds after you leave it${s.assistedWell ? " (your earlier explanation already saves 3 seconds)" : ""}${s.exposureNights ? ", longer now because Samira waits to meet him alone" : ""}`}. Then return home.${s.rescues ? ` Your rescue left you exhausted: tonight you have ${nightLimit(s) / 10} seconds before you must rest.` : ""}`;
 }
 function placeName(s: State): string {
   return distance(s.player, WELL) <= 1
