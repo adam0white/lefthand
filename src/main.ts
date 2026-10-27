@@ -13,6 +13,7 @@ import {
   type Run,
   replayRun,
   step,
+  upcomingWellSeconds,
 } from "./host";
 import "./style.css";
 
@@ -27,9 +28,9 @@ app.innerHTML = `<main>
 <header><div><small>THREE WINTER NIGHTS</small><h1>The Left Hand</h1></div><button id="menu-open" aria-expanded="false" aria-controls="menu">Menu</button></header>
 <p id="recording-notice" class="notice" hidden>Play is recorded and linked across the Lab by default. <button id="notice-off">Turn recording off</button> · <a href="${PRIVACY_URL}" target="_blank" rel="noopener">Privacy</a><button id="notice-close" aria-label="Dismiss recording notice">×</button></p>
 <p id="chapter" class="chapter"></p><p id="status" role="status"></p><p id="cold-warning" role="status" hidden></p>
-<section id="evening" aria-label="At Yusuf’s table"><p id="table-line">At the table, Yusuf addresses an envelope to Idris and Samira. They need food and fuel.</p><p>Where will you leave it?</p><div class="choices"><button id="route-door">Their door · direct</button><button id="route-well">Well box · wait for handoff</button></div><p class="source">Yusuf understands concealed voluntary giving as preferable; open giving is also good. <a href="https://quran.com/2/271" target="_blank" rel="noopener">Qur’an 2:271</a> · <a href="https://sunnah.com/bukhari:1423" target="_blank" rel="noopener">Bukhari 1423</a></p></section>
+<section id="evening" aria-label="At Yusuf’s table"><p id="table-line">At the table, Yusuf addresses an envelope to Idris and Samira. They need food and fuel.</p><p>Where will you leave it?</p><div class="choices"><button id="route-door">Their door · farther, Samira sees you</button><button id="route-well">Well box · closer, Danyal collects later</button></div><p class="source">Yusuf understands concealed voluntary giving as preferable; open giving is also good. <a href="https://quran.com/2/271" target="_blank" rel="noopener">Qur’an 2:271</a> · <a href="https://sunnah.com/bukhari:1423" target="_blank" rel="noopener">Bukhari 1423</a></p></section>
 <div class="village"><canvas id="canvas" tabindex="0" aria-label="Snowy village. Move with arrow keys or WASD, or use the direction buttons."></canvas><p id="loading">Lighting the village… You can choose a route now.</p></div>
-<section id="night" aria-label="Delivery controls" hidden><div id="recovery" hidden><p>A neighbour has seen you. Explain to coordinate later help, spending 3 seconds on the dawn clock, or keep quiet and preserve your privacy.</p><div class="choices"><button id="explain">Explain</button><button id="quiet">Keep quiet</button></div></div><div id="walking"><div class="action-row"><button id="lantern">Lantern lit · hide (L)</button><button id="act">Leave envelope</button></div><div class="directions" aria-label="Move"><button data-move="0,-1" class="up" aria-label="Move north">↑</button><button data-move="-1,0" class="left" aria-label="Move west">←</button><button data-move="0,1" class="down" aria-label="Move south">↓</button><button data-move="1,0" class="right" aria-label="Move east">→</button></div><p class="hint">Arrows / WASD move · L lantern · Enter deliver or return home</p></div></section>
+<section id="night" aria-label="Delivery controls" hidden><div id="recovery" hidden><p id="recovery-line"></p><div class="choices"><button id="explain">Explain</button><button id="quiet">Keep quiet</button></div></div><div id="walking"><div class="action-row"><button id="lantern">Lantern lit · hide (L)</button><button id="act">Leave envelope</button></div><div class="directions" aria-label="Move"><button data-move="0,-1" class="up" aria-label="Move north">↑</button><button data-move="-1,0" class="left" aria-label="Move west">←</button><button data-move="0,1" class="down" aria-label="Move south">↓</button><button data-move="1,0" class="right" aria-label="Move east">→</button></div><p class="hint">Arrows / WASD move · L lantern · Enter deliver or return home</p></div></section>
 <section id="morning" aria-label="Morning accounts" hidden><div id="morning-lines"></div><button id="next">Next evening</button></section>
 <section id="ending" hidden><h2 id="ending-title"></h2><p id="ending-line"></p><button id="again">Play again</button></section>
 <section id="menu" class="menu" aria-label="Menu" hidden><div class="menu-top"><h2>Paused</h2><button id="menu-close">Return to play</button></div><p><label><input id="recording" type="checkbox"> Recording</label> · <a href="${PRIVACY_URL}" target="_blank" rel="noopener">Privacy</a> · <a href="/third-party-notices.txt" target="_blank" rel="noopener">Licenses</a></p><div class="menu-actions"><button id="feedback-stop">I’m stopping</button><button id="feedback-confused">I’m confused</button><button id="download">Download run</button><button id="verify">Verify replay</button><button id="fullscreen">Fullscreen</button><button id="new">New game</button><a id="all-games" href="https://human.adamwhite.work/">All games</a></div><div id="new-confirm" hidden><p>End this run and prepare a new envelope?</p><button id="new-yes">Start new game</button><button id="new-no">Keep this run</button></div><form id="feedback" hidden><label for="note">Add a note, if you like</label><textarea id="note" rows="3" maxlength="4000"></textarea><label><input id="share-run" type="checkbox"> Share this run with the note (turns recording on)</label><div class="choices"><button type="submit" id="feedback-send">Send feedback</button><button type="button" id="feedback-cancel">Cancel</button></div></form><p id="menu-status" role="status"></p></section>
@@ -102,6 +103,20 @@ function update() {
   show("morning", phase === "morning");
   show("ending", phase === "ended");
   show("recovery", state.recoveryPending);
+  if (state.recoveryPending && state.witness) {
+    const w = state.witness;
+    const name = w.id === "tariq" ? "Tariq" : "Danyal";
+    setText(
+      "recovery-line",
+      `${
+        w.explanation
+          ? "Tariq will tell people his guess that you are helping Idris and Samira, even if you keep quiet."
+          : w.sight === "leaving"
+            ? `${name} saw you leave the envelope and will say so, even if you keep quiet.`
+            : `${name} will tell only what he saw.`
+      } Explain (3 seconds): name the family so he can help${state.night < 3 ? "; later well collection can be quicker" : ""}, but people will talk about their need. Keep quiet: no time spent.`,
+    );
+  }
   show("walking", !state.recoveryPending);
   setText(
     "chapter",
@@ -133,9 +148,13 @@ function update() {
   setText(
     "act",
     state.deliveredTonight
-      ? "Return home"
+      ? Math.abs(state.player.x - view.home.x) +
+          Math.abs(state.player.y - view.home.y) <=
+        1
+        ? "Go inside"
+        : "Return home"
       : view.deliveryPending
-        ? `Handoff · ${Math.ceil(view.handoffRemaining / 10)}s`
+        ? `Collection · ${Math.ceil(view.handoffRemaining / 10)}s`
         : "Leave envelope",
   );
   show("cold-warning", phase === "night" && Boolean(view.coldWarning));
@@ -145,7 +164,7 @@ function update() {
     "table-line",
     state.night === 1
       ? "At the table, Yusuf addresses an envelope to Idris and Samira. They need food and fuel."
-      : `At the table, Yusuf prepares another envelope.${state.exposureNights ? ` Samira asks for a private handoff after the village talk; well collection now takes ${(state.history.some((h) => h.delivered && h.witness?.recovered === "explain") ? 0 : 3) + state.exposureNights * 3} seconds. The door is immediate, but exposes the delivery.` : " Idris and Samira still need food and fuel."}${state.rescues ? ` Yusuf still owes the neighbours work after his rescue. Exhaustion leaves ${view.nightLimit / 10} seconds for tonight’s walk.` : ""}`,
+      : `At the table, Yusuf prepares another envelope.${state.exposureNights ? ` After the village talk, Samira waits to meet Danyal alone, so well collection now takes ${upcomingWellSeconds(state)} seconds. At the door there is no wait, but Samira sees who brings it.` : " Idris and Samira still need food and fuel."}${state.rescues ? ` Yusuf still owes the neighbours work after his rescue. Exhaustion leaves ${view.nightLimit / 10} seconds for tonight’s walk.` : ""}`,
   );
   const key = `${state.night}:${phase}`;
   if (phase === "morning" && morningKey !== key) {
@@ -176,6 +195,11 @@ function update() {
   if (key !== lastScreen) {
     lab.screen(key);
     lastScreen = key;
+    // On wide screens the map pushes morning and ending text below the fold.
+    if (phase === "morning" || phase === "ended")
+      element(phase === "morning" ? "morning" : "ending").scrollIntoView({
+        block: "nearest",
+      });
     if (phase === "morning" || phase === "ended") lab.milestone(key);
   }
 }

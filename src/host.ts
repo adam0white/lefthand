@@ -214,13 +214,29 @@ export function createGame(seed = 1): State {
     cold: 0,
     outcome: "",
     status:
-      "Prepare one envelope for Idris and Samira. Choose their door or the labelled well box.",
+      "Prepare one envelope for Idris and Samira. Choose their door or the well box.",
     morningLines: [],
     history: [],
     inputs: [],
     routineOffset: 0,
   };
   return s;
+}
+/** True when an earlier explanation left a trusting neighbour who shortens collection. */
+function neighbourAssists(s: State): boolean {
+  return s.history.some(
+    (h) =>
+      h.delivered &&
+      h.witness?.recovered === "explain" &&
+      relationshipWith(
+        required(s.people.find((p) => p.id === h.witness?.id)),
+        "yusuf",
+      ).trust > 0.5,
+  );
+}
+/** Dawn-clock seconds the well collection will take on the coming night. */
+export function upcomingWellSeconds(s: State): number {
+  return ((neighbourAssists(s) ? 0 : 30) + s.exposureNights * 30) / 10;
 }
 function chooseRoutines(s: State) {
   s.routineOffset = Math.floor(random(s) * 80);
@@ -261,15 +277,7 @@ function startNight(s: State) {
   s.directHandoffTonight = false;
   s.envelopePlaced = false;
   s.wellPendingTick = null;
-  s.assistedWell = s.history.some(
-    (h) =>
-      h.delivered &&
-      h.witness?.recovered === "explain" &&
-      relationshipWith(
-        required(s.people.find((p) => p.id === h.witness?.id)),
-        "yusuf",
-      ).trust > 0.5,
-  );
+  s.assistedWell = neighbourAssists(s);
   s.witness = null;
   s.recoveryPending = false;
   s.morningLines = [];
@@ -283,7 +291,7 @@ function startNight(s: State) {
     samira.body.asleep = true;
   }
   chooseRoutines(s);
-  s.status = `Night ${s.night}: ${s.route === "door" ? "the longer walk to the family door gives an immediate handoff" : `the shorter well route needs a ${wellDelay(s) / 10}-second wait for collection${s.assistedWell ? "; your trusted neighbour saves 3 seconds" : ""}`}. Return home after delivery.${s.exposureNights ? " Samira no longer trusts the public well handoff; the keeper must wait longer for her." : ""}${s.rescues ? ` Your rescue left you exhausted: tonight you have ${nightLimit(s) / 10} seconds before you must rest.` : ""}`;
+  s.status = `Night ${s.night}: ${s.route === "door" ? "the family door is the longer walk. Samira takes the envelope at once, so she sees who brought it" : `the well box is closer. Danyal, who keeps the well, collects the envelope ${wellDelay(s) / 10} seconds after you leave it${s.assistedWell ? " (your earlier explanation already saves 3 seconds)" : ""}${s.exposureNights ? ", longer now because Samira waits to meet him alone" : ""}`}. Return home after delivery.${s.night === 1 ? " If any light reaches you (your lantern, a lamp or a neighbour’s lantern), a nearby neighbour can see you. Hiding your lantern helps you stay unseen, but the cold builds." : ""}${s.rescues ? ` Your rescue left you exhausted: tonight you have ${nightLimit(s) / 10} seconds before you must rest.` : ""}`;
 }
 function placeName(s: State): string {
   return distance(s.player, WELL) <= 1
@@ -352,7 +360,7 @@ function encounter(
       : sight === "empty-handed"
         ? "Tariq turns. “Out late, Yusuf?”"
         : "Tariq turns. “Is that for Idris?”";
-  s.status = `${a.reaction} Explain the practical delivery, or keep quiet. The night clock waits for your reply. Explaining spends 3 seconds on the dawn clock; keeping quiet spends none.`;
+  s.status = `${a.reaction} Explain or keep quiet. The dawn clock waits for your reply.`;
 }
 function recover(s: State, choice: "explain" | "keepquiet") {
   if (!s.recoveryPending || !s.witness) return;
@@ -393,8 +401,10 @@ function recover(s: State, choice: "explain" | "keepquiet") {
   }
   s.status =
     choice === "explain"
-      ? "You spend 3 seconds naming the recipients and coordinating delivery. Your neighbour knows how to help, but naming the family may cost their trust and delay later well handoffs."
-      : "You keep quiet. The witness keeps their own account.";
+      ? "You spend 3 seconds naming Idris and Samira and agreeing how to help them. Your neighbour will help, but the family’s need is now named."
+      : s.witness.explanation
+        ? "You keep quiet. Tariq will still tell people his own guess."
+        : "You keep quiet. Your neighbour will tell only what he saw.";
 }
 function wellDelay(s: State) {
   return (s.assistedWell ? 0 : 30) + s.exposureNights * 30;
@@ -419,7 +429,7 @@ function morning(s: State, reason: string, rescued = false) {
     ? w.fact +
       (w.explanation
         ? ` ${w.explanation}`
-        : " I cannot say who the gift was for.")
+        : " I cannot say who the envelope was for.")
     : "I did not see Yusuf last night.";
   for (const id of ["idris", "samira"]) {
     const p = required(s.people.find((p) => p.id === id));
@@ -484,14 +494,16 @@ function morning(s: State, reason: string, rescued = false) {
           : id === "samira"
             ? s.deliveredTonight
               ? exposed
-                ? "The help reached us. I trust Yusuf less with our privacy; next time the keeper must wait until I can come alone."
+                ? "The help reached us. I trust Yusuf less with our privacy; next time Danyal must wait until I can meet him alone."
                 : "I brought the envelope inside. Our need has stayed private."
               : "We managed this morning. We need help before the next one."
             : id === w?.id
               ? report
               : exposed
                 ? "People are talking about Yusuf helping Idris and Samira."
-                : "I did not see the delivery; I cannot name the giver.",
+                : s.deliveredTonight
+                  ? "I did not see the delivery; I cannot name the giver."
+                  : "I did not see Yusuf last night.",
   }));
   s.history.push({
     night: s.night,
@@ -565,7 +577,9 @@ function deliver(s: State) {
   if (s.envelopePlaced) {
     s.status = s.deliveredTonight
       ? "Tonight’s envelope is delivered. Return to your home."
-      : "The keeper is on the way to collect the labelled envelope. You may start walking home.";
+      : distance(s.player, HOME) <= 1
+        ? "You are home. Danyal has not collected the envelope yet; wait for him, then go inside."
+        : "Danyal is on his way to collect the envelope. You may start walking home.";
     return;
   }
   const target = s.route === "door" ? DOOR : WELL;
@@ -577,7 +591,7 @@ function deliver(s: State) {
   s.envelopePlaced = true;
   if (s.route === "well" && wellDelay(s) > 0) {
     s.wellPendingTick = s.nightTick + wellDelay(s);
-    s.status = `The labelled envelope is safe in the well box. Collection takes ${wellDelay(s) / 10} seconds on the dawn clock${s.exposureNights ? "; Samira waits for a private handoff after the village talk" : ""}. You may start walking home.`;
+    s.status = `The envelope is in the well box. Danyal collects it in ${wellDelay(s) / 10} seconds${s.exposureNights ? ", once Samira can meet him alone" : ""}. You may start walking home.`;
   } else receiveAid(s);
   if (!s.witness)
     encounter(
@@ -639,17 +653,17 @@ export function step(s: State, command?: Command): State {
         s.exposureNights >= 2
           ? " Repeated exposure made their need village talk. Idris keeps his distance; Samira no longer trusts Yusuf with a private delivery. Future help must be arranged with them directly."
           : s.exposureNights
-            ? " One night became village talk. Idris wanted to choose who knew; Samira now asks for a private handoff."
+            ? " One night became village talk. Idris wanted to choose who knew; Samira now asks Danyal to wait until she can meet him alone."
             : " Their need stayed private. Idris keeps his dignity; Samira trusts the quiet arrangement.";
       s.outcome += s.rescues
         ? ` Yusuf needed ${s.rescues === 1 ? "one rescue" : `${s.rescues} rescues`}. He remains exhausted and owes the neighbours the work they missed bringing him home; he cannot keep making these walks alone.`
-        : " Yusuf returned safely each night.";
+        : " Yusuf needed no rescue.";
       s.status = s.outcome;
     } else {
       s.night++;
       s.phase = "evening";
       s.status =
-        "Prepare the next envelope. Choose the door or the labelled well box.";
+        "Prepare the next envelope. Choose their door or the well box.";
     }
   } else if (s.phase === "night" && command && !conversing) {
     if (command.type === "recover") recover(s, command.choice);
@@ -717,13 +731,15 @@ export function step(s: State, command?: Command): State {
     if (!s.recoveryPending && s.cold >= 420)
       morning(
         s,
-        "The cold forced you to seek shelter. A neighbour missed work to bring you home. You owe that work, and exhaustion shortens later nights. Any delivered envelope stays with the household.",
+        `The cold forced you to seek shelter. A neighbour missed work to bring you home. You owe that work, and exhaustion shortens later nights.${s.deliveredTonight ? " Tonight’s envelope stays with the household." : s.envelopePlaced ? " The envelope in the well box never reached them." : ""}`,
         true,
       );
     else if (!s.recoveryPending && s.nightTick >= nightLimit(s))
       morning(
         s,
-        "Dawn ended the delivery window. Any delivered envelope stays with the household.",
+        s.deliveredTonight
+          ? "Dawn came before you reached home. Tonight’s envelope stays with the household."
+          : "Dawn came before any envelope reached Idris and Samira.",
       );
   }
   return s;
