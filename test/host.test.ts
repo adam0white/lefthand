@@ -405,7 +405,7 @@ describe("iteration two consequences", () => {
   });
 });
 
-test("a prior quiet witness cannot hide a later direct door handoff", async () => {
+test("an unseen door handoff is thanked, not exposed, even after a quiet sighting", async () => {
   const { shortestPath } = await import("../scripts/policies");
   const s = createGame(1);
   const quiet = () => {
@@ -418,6 +418,7 @@ test("a prior quiet witness cannot hide a later direct door handoff", async () =
     }
   };
   step(s, { type: "plan", route: "door" });
+  step(s, { type: "lantern" });
   travel({ x: 4, y: 7 });
   for (let i = 0; i < 30 && !s.witness; i++) step(s);
   quiet();
@@ -429,9 +430,75 @@ test("a prior quiet witness cannot hide a later direct door handoff", async () =
   travel({ x: 7, y: 15 });
   step(s, { type: "act" });
   expect(s.delivered).toBe(1);
-  expect(s.exposureNights).toBe(1);
-  expect(s.morningLines.find((p) => p.id === "samira")?.line).toContain(
-    "trust Yusuf less",
+  expect(s.exposureNights).toBe(0);
+  expect(s.thankedNights).toBe(1);
+  expect(s.morningLines.find((p) => p.id === "idris")?.line).toContain(
+    "thank him quietly",
+  );
+  // Leaving the envelope at the door with the lantern lit is still public.
+  const lit = createGame(1);
+  step(lit, { type: "plan", route: "door" });
+  walk(lit, 11, 3);
+  command(lit, { type: "act" });
+  expect(lit.witness?.sight).toBe("leaving");
+  walk(lit, 7, 15);
+  command(lit, { type: "act" });
+  expect(lit.exposureNights).toBe(1);
+  expect(lit.thankedNights).toBe(0);
+  expect(hash(replayRun(exportRun(s)))).toBe(hash(s));
+});
+
+test("Tariq's guess alone is village talk, not lost trust", () => {
+  const s = createGame(1);
+  step(s, { type: "plan", route: "well" });
+  for (let i = 0; i < 10; i++) step(s);
+  for (let i = 0; i < 4 && !s.witness; i++)
+    step(s, { type: "move", dx: 0, dy: -1 });
+  expect(s.witness?.id).toBe("tariq");
+  expect(s.witness?.explanation).toContain("helping Idris and Samira");
+  step(s, { type: "recover", choice: "keepquiet" });
+  step(s, { type: "lantern" });
+  walk(s, 4, 7);
+  step(s, { type: "act" });
+  while (!s.deliveredTonight) step(s);
+  walk(s, 7, 15);
+  step(s, { type: "act" });
+  expect(s.phase).toBe("morning");
+  expect(s.exposureNights).toBe(0);
+  expect(s.talkNights).toBe(1);
+  expect(s.history[0]?.talk).toBe(true);
+  expect(s.morningLines.find((p) => p.id === "danyal")?.line).toContain(
+    "Nobody can say for sure",
   );
   expect(hash(replayRun(exportRun(s)))).toBe(hash(s));
+});
+
+test("quiet door nights end with the household thanking Yusuf", async () => {
+  const { shortestPath } = await import("../scripts/policies");
+  const s = createGame(2);
+  for (let night = 1; night <= 3; night++) {
+    step(s, { type: "plan", route: "door" });
+    step(s, { type: "lantern" });
+    for (const target of [
+      { x: 11, y: 3 },
+      { x: 7, y: 15 },
+    ]) {
+      while (
+        Math.abs(s.player.x - target.x) + Math.abs(s.player.y - target.y) >
+        1
+      ) {
+        if (s.recoveryPending)
+          step(s, { type: "recover", choice: "keepquiet" });
+        else step(s, shortestPath(s, target, true)[0]);
+      }
+      step(s, { type: "act" });
+      if (s.recoveryPending) step(s, { type: "recover", choice: "keepquiet" });
+    }
+    if (s.phase === "night") step(s, { type: "act" });
+    step(s, { type: "next" });
+  }
+  expect(s.phase).toBe("ended");
+  expect(s.exposureNights).toBe(0);
+  expect(s.ending).toBe("thanked");
+  expect(s.outcome).toContain("Idris thanked him quietly");
 });

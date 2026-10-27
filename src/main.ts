@@ -28,7 +28,7 @@ app.innerHTML = `<main>
 <header><div><small>THREE WINTER NIGHTS</small><h1>The Left Hand</h1></div><button id="menu-open" aria-expanded="false" aria-controls="menu">Menu</button></header>
 <p id="recording-notice" class="notice" hidden>Play is recorded and linked across the Lab by default. <button id="notice-off">Turn recording off</button> · <a href="${PRIVACY_URL}" target="_blank" rel="noopener">Privacy</a><button id="notice-close" aria-label="Dismiss recording notice">×</button></p>
 <p id="chapter" class="chapter"></p><p id="status" role="status"></p><p id="cold-warning" role="status" hidden></p>
-<section id="evening" aria-label="At Yusuf’s table"><p id="table-line">At the table, Yusuf addresses an envelope to Idris and Samira. They need food and fuel. Outside, if any light reaches you (your lantern, a lamp or a neighbour’s lantern), a nearby neighbour can see you. Hiding your lantern helps you stay unseen, but the cold builds.</p><p>Where will you leave it?</p><div class="choices"><button id="route-door">Their door · farther, Samira sees you</button><button id="route-well">Well box · closer, Danyal collects later</button></div><p class="source">Yusuf understands concealed voluntary giving as preferable; open giving is also good. <a href="https://quran.com/2/271" target="_blank" rel="noopener">Qur’an 2:271</a> · <a href="https://sunnah.com/bukhari:1423" target="_blank" rel="noopener">Bukhari 1423</a></p></section>
+<section id="evening" aria-label="At Yusuf’s table"><p id="table-line">At the table, Yusuf addresses an envelope to Idris and Samira. They need food and fuel. Outside, if any light reaches you (your lantern, a lamp or a neighbour’s lantern), a nearby neighbour can see you. Hiding your lantern helps you stay unseen, but the cold builds.</p><p>Where will you leave it?</p><div class="choices"><button id="route-door">Their door · farther, Samira knows it was you</button><button id="route-well">Well box · closer, Danyal collects later</button></div><p class="source">Yusuf understands concealed voluntary giving as preferable; open giving is also good. <a href="https://quran.com/2/271" target="_blank" rel="noopener">Qur’an 2:271</a> · <a href="https://sunnah.com/bukhari:1423" target="_blank" rel="noopener">Bukhari 1423</a></p></section>
 <div class="village"><canvas id="canvas" tabindex="0" aria-label="Snowy village. Move with arrow keys or WASD, or use the direction buttons."></canvas><p id="loading">Lighting the village… You can choose a route now.</p></div>
 <section id="night" aria-label="Delivery controls" hidden><div id="recovery" hidden><p id="recovery-line"></p><div class="choices"><button id="explain">Explain</button><button id="quiet">Keep quiet</button></div></div><div id="walking"><div class="action-row"><button id="lantern">Lantern lit · hide (L)</button><button id="act">Leave envelope</button></div><div class="directions" aria-label="Move"><button data-move="0,-1" class="up" aria-label="Move north">↑</button><button data-move="-1,0" class="left" aria-label="Move west">←</button><button data-move="0,1" class="down" aria-label="Move south">↓</button><button data-move="1,0" class="right" aria-label="Move east">→</button></div><p class="hint">Arrows / WASD move · L lantern · Enter deliver or return home</p></div></section>
 <section id="morning" aria-label="Morning accounts" hidden><div id="morning-lines"></div><button id="next">Next evening</button></section>
@@ -109,10 +109,10 @@ function update() {
     setText(
       "recovery-line",
       `${
-        w.explanation
-          ? "Tariq will tell people his guess that you are helping Idris and Samira, even if you keep quiet."
-          : w.sight === "leaving"
-            ? `${name} saw you leave the envelope and will say so, even if you keep quiet.`
+        w.sight === "leaving"
+          ? `${name} saw you leave the envelope and will say so, even if you keep quiet.`
+          : w.explanation
+            ? "Tariq will repeat his guess that you are helping Idris and Samira. If you keep quiet, it stays a guess: people will talk, but nobody can confirm it."
             : `${name} will tell only what he saw.`
       } Explain (3 seconds): name the family so he can help${state.night < 3 ? "; later well collection can be quicker" : ""}, but people will talk about their need. Keep quiet: no time spent.`,
     );
@@ -185,9 +185,13 @@ function update() {
       state.delivered >= 2
         ? state.rescues
           ? "Help reached them; Yusuf needs care"
-          : state.exposureNights >= 2
+          : state.ending === "exposed"
             ? "Help reached them; trust was lost"
-            : "The help reached them"
+            : state.ending === "talked"
+              ? "Help reached them; the village is guessing"
+              : state.ending === "thanked"
+                ? "Help reached them; they know it was you"
+                : "The help reached them"
         : "The household needs more help",
     );
     setText("ending-line", state.outcome);
