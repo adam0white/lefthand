@@ -241,6 +241,11 @@ func draw_landmark(place: Dictionary, key: String, title: String) -> void:
         draw_rect(Rect2(point + Vector2(cell * 0.39, -cell * 0.7), Vector2(cell * 0.13, cell)), Color("b6c9cf"))
     if title == "":
         return
+    # Yusuf's "You" label sits above him; skip a place label he is standing on.
+    var player: Dictionary = frame.get("player", {})
+    var below: int = int(player.get("y", -9)) - int(place.get("y", 0))
+    if absi(int(player.get("x", -9)) - int(place.get("x", 0))) <= 1 and below >= 1 and below <= (2 if key == "well" else 1):
+        return
     var text_size: int = maxi(10, int(cell * 0.38))
     var text_width: float = font.get_string_size(title, HORIZONTAL_ALIGNMENT_LEFT, -1, text_size).x
     var center: Vector2 = point + Vector2(0, cell * (1.45 if key == "well" else 0.84))

@@ -6,6 +6,7 @@ import {
 } from "@adam0white/lab-client";
 import {
   type Command,
+  canAsk,
   createGame,
   exportRun,
   hash,
@@ -116,9 +117,13 @@ function update() {
               : w.explanation
                 ? "Tariq will repeat his guess that you are helping Idris and Samira. If you keep quiet, it stays a guess: people will talk, but nobody can confirm it."
                 : `${name} will tell only what he saw.`
-          } Explain (3 seconds): name the family so he can help${state.night < 3 ? "; later well collection can be quicker" : ""}, but people will talk about their need. Keep quiet: no time spent. Ask him not to tell (1 second): you name nobody and he keeps it to himself, but only once. If he sees you out again, he tells people.`,
+          } Explain (3 seconds): name the family so he can help${state.night < 3 ? "; later well collection can be quicker" : ""}, but people will talk about their need. ${
+            canAsk(w)
+              ? "Keep quiet: no time spent. Ask him not to tell (1 second): you name nobody and he keeps it to himself, but only once. If he sees you out again, he tells people."
+              : "Keep quiet: no time spent, and nothing about the family gets out."
+          }`,
     );
-    element<HTMLButtonElement>("ask").hidden = w.repeat;
+    element<HTMLButtonElement>("ask").hidden = !canAsk(w);
   }
   show("walking", !state.recoveryPending);
   setText(
@@ -168,7 +173,7 @@ function update() {
     "cold-warning",
     view.coldWarning ||
       (state.player.lantern
-        ? "Warmth · lit: you warm up, but neighbours can see you."
+        ? "Warmth · lit: you warm up, but nearby neighbours can see you."
         : "Warmth · hidden: unseen, but you grow colder."),
   );
   const warmth = Math.max(

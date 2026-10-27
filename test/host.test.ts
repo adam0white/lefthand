@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 import {
   type Command,
+  canAsk,
   createGame,
   exportRun,
   hash,
@@ -597,22 +598,21 @@ describe("panel fix cycle (F-1626 to F-1631)", () => {
 
   test("asking a neighbour not to tell works once; his next sighting is exposure", async () => {
     const { policyCommand } = await import("../scripts/policies");
-    const s = createGame(1);
-    let refused = false;
+    const s = createGame(10);
+    let refusal = "";
     while (s.phase !== "ended") {
-      if (s.recoveryPending && s.witness?.repeat && !refused) {
+      const w = s.witness;
+      if (s.recoveryPending && w && canAsk(w))
         step(s, { type: "recover", choice: "ask" });
-        refused = s.recoveryPending;
-        continue;
-      }
-      step(
-        s,
-        s.recoveryPending && !s.witness?.repeat
-          ? { type: "recover", choice: "ask" }
-          : policyCommand(s, "careful"),
-      );
+      else if (s.recoveryPending && w?.repeat && !refusal) {
+        step(s, { type: "recover", choice: "ask" });
+        expect(s.recoveryPending).toBe(true);
+        refusal = s.status;
+      } else if (s.recoveryPending)
+        step(s, { type: "recover", choice: "keepquiet" });
+      else step(s, policyCommand(s, "careless"));
     }
-    expect(refused).toBe(true);
+    expect(refusal).toContain("will not promise twice");
     const [first, second] = s.history;
     expect(first?.witness?.recovered).toBe("ask");
     expect(first).toMatchObject({ talk: false, exposed: false });
@@ -622,11 +622,33 @@ describe("panel fix cycle (F-1626 to F-1631)", () => {
     expect(second?.witness).toMatchObject({
       id: first?.witness?.id,
       repeat: true,
+      recovered: "keepquiet",
     });
     expect(second?.exposed).toBe(true);
     expect(second?.lines.find((p) => p.id === "idris")?.line).toContain(
       "after promising once to keep quiet",
     );
     expect(hash(replayRun(exportRun(s)))).toBe(hash(s));
+  });
+
+  test("asking is offered only when the sighting would cost privacy", async () => {
+    const { policyCommand } = await import("../scripts/policies");
+    const s = createGame(13);
+    for (let i = 0; i < 2000 && !s.recoveryPending; i++)
+      step(s, policyCommand(s, "careful"));
+    const w = s.witness;
+    expect(w && !w.repeat && w.sight !== "leaving" && !w.explanation).toBe(
+      true,
+    );
+    step(s, { type: "recover", choice: "ask" });
+    expect(s.recoveryPending).toBe(true);
+    expect(s.status).toContain("nothing to ask him to hide");
+  });
+
+  test("runs from the previous schema are refused, not misreplayed", () => {
+    const run = exportRun(createGame(1));
+    expect(() =>
+      replayRun({ ...run, schema: "left-hand-run@2" } as never),
+    ).toThrow("Incompatible run");
   });
 });

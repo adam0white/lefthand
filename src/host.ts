@@ -409,12 +409,21 @@ function encounter(
         : "Tariq turns. “Is that for Idris?”";
   s.status = repeat
     ? `${a.reaction} He promised once to keep quiet. Seeing you again, he will tell people what he saw, whatever you say. The dawn clock waits for your reply.`
-    : `${a.reaction} Explain, keep quiet, or ask him not to tell. The dawn clock waits for your reply.`;
+    : `${a.reaction} ${canAsk(s.witness) ? "Explain, keep quiet, or ask him not to tell" : "Explain or keep quiet"}. The dawn clock waits for your reply.`;
+}
+/** Asking is offered only when the sighting would cost the family's privacy
+ * (he saw the envelope left, or Tariq has a guess) and he has not promised before. */
+export function canAsk(w: Witness): boolean {
+  return !w.repeat && (w.sight === "leaving" || !!w.explanation);
 }
 function recover(s: State, choice: Reply) {
   if (!s.recoveryPending || !s.witness) return;
-  // A neighbour keeps one promise; he will not be asked twice.
-  if (choice === "ask" && s.witness.repeat) return;
+  if (choice === "ask" && !canAsk(s.witness)) {
+    s.status = s.witness.repeat
+      ? "He will not promise twice. Explain or keep quiet."
+      : "There is nothing to ask him to hide: he saw nothing about the family. Explain or keep quiet.";
+    return;
+  }
   s.witness.recovered = choice;
   s.recoveryPending = false;
   const p = required(s.people.find((p) => p.id === s.witness?.id));
@@ -990,7 +999,7 @@ export function step(s: State, command?: Command): State {
           ? "Dawn came before you reached home. Tonight’s envelope stays with the household."
           : s.envelopePlaced
             ? `Dawn came first. Danyal needed ${collectionSecondsLeft(s)} more seconds to collect the envelope from the well box, so it did not reach Idris and Samira.`
-            : `Dawn came before you left the envelope, so nothing reached Idris and Samira. You were ${stepsToTarget(s)} steps from the ${s.route === "door" ? "door" : "well"}.`,
+            : `Dawn came before you left the envelope, so nothing reached Idris and Samira. ${stepsToTarget(s) === 0 ? `You were at the ${s.route === "door" ? "door" : "well"} but did not leave it.` : `You were ${stepsToTarget(s)} steps from the ${s.route === "door" ? "door" : "well"}.`}`,
       );
   }
   return s;

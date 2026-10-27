@@ -92,15 +92,17 @@ Endings now: the help reached them (private), they know it was you, the village 
 This cycle fixes the six blocking asks from the lab-panel round (F-1626 to F-1631). It keeps the fairness pass rules and the difficulty.
 
 **Third reply: "Ask him not to tell".** Yusuf names nobody and tells no lie. He asks the neighbour to keep what he saw to himself.
+- It is offered only when the sighting would cost the family's privacy: he saw Yusuf leave the envelope, or Tariq has a guess. On a harmless sighting, the screen says keeping quiet lets nothing about the family out.
 - It costs 1 second of the dawn clock.
 - The first time, that neighbour promises. He tells nobody that morning. The night is neither exposure nor village talk, even if he saw Yusuf leave the envelope or Tariq had a guess.
 - The promise holds only once. If the same neighbour sees Yusuf on a later night, he tells people whatever Yusuf says. That night is exposure, and asking again is refused.
-- Every night has a witness, so asking on night 1 or 2 is a bet that the other neighbour sees you next time. Asking on night 3 costs only the second. The ending says the neighbour still knows Yusuf has a secret.
+- Every night has a witness, so asking on night 1 or 2 is a bet that the other neighbour sees you next time. On night 3 asking costs only the second, so it beats keeping quiet on a revealing sighting. This is deliberate: the reply is a once-per-neighbour recovery from a mistake, and its tension is on the earlier nights. The ending says the neighbour still knows Yusuf has a secret.
 - Each neighbour is an HF person. The request reaches him as a `told` percept ("discretion-request"), and no morning account is told to the family.
 
 **Headless check (20 seeds per cell, the time is per tile, `claude-builds/lefthand-panel-fixes/speed.ts`).**
 - The four existing policies give the same endings before and after: careful sheltered 20/20/17 (+3 talked) at 400/600/900 ms, careless exposed 60/60, cold rescued 60/60.
-- Always asking is not dominant. Careful-ask is exposed in 20, 17 and 7 runs of 20 at 400/600/900 ms. Careless-ask is exposed in 60 of 60 runs at human speed.
+- The "-ask" policies ask whenever the reply is offered. Careful-ask is sheltered 20/20 at every speed; the reply turns Tariq's 3 talk nights at 900 ms into private ones. Careless-ask is exposed in 60 of 60 runs at 400 to 900 ms per tile. At 100 ms per tile, faster than a person can tap, it reaches "they know it was you" in 8 of 20.
+- A neighbour seen again after promising makes the reply a real cost: door-careful-ask has 12 to 27 exposure nights at 400 to 900 ms per tile, against 0 for door-careful.
 
 **Schema.** State is `left-hand@3` and runs are `left-hand-run@3`: new state fields and a new reply. Exports from this build replay exactly. `@2` exports from 6c34992 and earlier are refused as "Incompatible run" (start fresh). This follows the 4.0 direction and the e6849df precedent.
 
