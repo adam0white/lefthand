@@ -740,7 +740,7 @@ export function step(s: State, command?: Command): State {
               ? ""
               : " Their need stayed private. Idris keeps his dignity; Samira trusts the quiet arrangement.";
       if (s.thankedNights)
-        s.outcome += ` On ${s.thankedNights === 1 ? "one night" : `${s.thankedNights} nights`} Yusuf handed the envelope over at their door and no neighbour saw him leave it. The household knows who helped, and Idris thanked him quietly.`;
+        s.outcome += ` ${s.thankedNights === 1 ? "On one night" : s.thankedNights === 2 ? "On two nights" : "On all three nights"} Yusuf handed the envelope over at their door and no neighbour saw him leave it. The household knows who helped, and Idris thanked him quietly.`;
       if (s.talkNights)
         s.outcome +=
           s.talkNights >= 2
