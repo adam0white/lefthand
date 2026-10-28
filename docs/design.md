@@ -38,6 +38,8 @@ A full-width Godot village sits between a short spoken line and thumb-sized dire
 
 ## Deferred
 
+- 2026-10-28: Re-add Tariq to the shelf role map once Warren is live on HF 4 with per-person skips (client 0.5.1+); target 2026-11-03. Tariq remains a local actor; this chapter neither reads nor writes his shared head.
+
 - Iteration 2 (2026-10-26) resolves the overlapping person/well labels, unmarked door, ambiguous lantern, timer drift, duplicate/stale text and mixed clock units. The lantern starts lit and names its state and action. All visible durations use the dawn clock seconds.
 
 - Linux WebKit framebuffer presentation: investigate 2026-11-03 with the retained bounded blit diagnostic; Godot4.7.2 stock-template errors remain unresolved. macOS WebKit is the Safari-oriented CI platform, consistent with [Playwright guidance](https://playwright.dev/docs/browsers#webkit).
@@ -224,3 +226,15 @@ receipt. `codex/portable-control/control.ts` and `receipt.json` preserve the bou
 portable probe; restore the candidate before running its imports. The final worker
 report owns delivery receipts. The full candidate lane was cancelled while waiting
 for the shared suite lock after G2 was confirmed; it is not claimed green.
+
+## HF 4.8 port source (2026-10-28)
+
+The port uses exact HF 4.8.0 and companion client 0.5.4. G5 uses the published observation-to-body wake route: the seed-7 recipient naturally dozes, then an actual nearby delivery wakes her. The preserved candidate is the starting point, with no copied wake rule or actor mutation. Older engine exports refuse with keep-file/start-fresh text. Current exports retain the complete run, ordered host inputs, RNG and pinned shelf inputs and replay exactly. Godot retains its rendering/movement protocol.
+
+G2 uses the four supported Left Hand canonical roles and the existing portable v1/v2 admission helpers. Fresh runs prepare Yusuf, Idris, Samira and Danyal from the shelf, validate each actual authored opening and atomically claim eligible arrivals against every original head. Skipped people are pinned in the export and cannot be written from this chapter. A loaded game uses the pinned input without consulting the shelf. A role mismatch is a named refusal; it does not prevent eligible people from continuing. No Valley passport is fabricated, and another game's adoption remains separate.
+
+Source checkpoints project actual actors only after the final night and after the chapter has stopped its local rounds through ordinary HF interruptions. Consumed offers are withdrawn through a newer ordinary offer revision so they cannot restart silently. The host declares its actual remembered places as world facts; retained place references therefore resolve in the next authored opening. Departure does not wake actors, erase duties, heal injuries or report uncompleted work as complete. Clinical or retained-reference conflicts still refuse. Failed or unconfirmed writes preserve the local chapter and are not retried automatically.
+
+Local saves happen at screen transitions, pause and page exit. Resume verifies the exported run. Interrupted shared writes can remain unconfirmed; a missing reply never establishes non-write. Finishing and All games trigger checkpoints, while page-exit delivery is best-effort. The people shelf is linked as People across games.
+
+Acceptance uses one full three-night headless control, the actual doze/delivery regression, current-version continuation and replay, a real completed-actor shelf admission/resume control, and the existing Chromium/WebKit phone/desktop suite. The game-specific budget remains 50 ms p95 per 100 ms host interval and 500 ms per discrete plan; measurements and exact source/CI/deployment receipts are in the G2-SHELF worker report. The earlier failed candidate records above remain historical evidence. Source, published artifacts, deployment and player acceptance are separate outcomes.

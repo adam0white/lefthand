@@ -1,13 +1,17 @@
+import type { LifePreparation } from "@adam0white/lab-client";
 import {
-  type Affordance,
-  tick as advancePerson,
-  createPerson,
-  decide,
-  FRAMEWORK_VERSION,
-  type Person,
+  type ActorReading,
+  type Archive,
+  advance,
+  closeChapter,
+  ENGINE as FRAMEWORK_VERSION,
+  interrupt,
+  nightRoutines,
+  opening,
   perceive,
-  relationshipWith,
-} from "@adam0white/human-framework";
+  refresh,
+  verifyArchive,
+} from "./actors.ts";
 
 export const TICK_HZ = 10;
 export const WIDTH = 15,
@@ -43,9 +47,13 @@ type Witness = {
   repeat: boolean;
 };
 export type State = {
-  schema: "left-hand@4";
+  schema: "left-hand@5";
   engine: string;
   seed: number;
+  carryover: {
+    inputs: LifePreparation[];
+    blocked: { castId: string; reason: string }[];
+  };
   rng: number;
   tick: number;
   nightTick: number;
@@ -75,7 +83,8 @@ export type State = {
   phase: "evening" | "night" | "morning" | "ended";
   route: "door" | "well";
   player: Point & { lantern: boolean };
-  people: Person[];
+  people: ActorReading[];
+  actorsRun: Archive;
   actors: Actor[];
   witness: Witness | null;
   recoveryPending: boolean;
@@ -105,7 +114,7 @@ export type State = {
   routineOffset: number;
 };
 export type Run = {
-  schema: "left-hand-run@4";
+  schema: "left-hand-run@5";
   engine: string;
   seed: number;
   ticks: number;
@@ -181,33 +190,16 @@ function lit(s: State, p: Point): boolean {
   lamps.push(...s.actors.filter((a) => a.lantern));
   return lamps.some((l) => distance(l, p) <= 3 && los(l, p));
 }
-export function createGame(seed = 1): State {
+export function createGame(
+  seed = 1,
+  carryover: State["carryover"] = { inputs: [], blocked: [] },
+): State {
   seed >>>= 0;
-  const people = CAST.map(([id, name, age], i) =>
-    createPerson({
-      id,
-      name,
-      seed: (seed + i * 997) >>> 0,
-      now: 1200,
-      bornAt: 1200 - age * 525600,
-      sex: id === "samira" ? "female" : "male",
-      traits: id === "danyal" ? { honesty: 0.9 } : {},
-      body: { satiety: 0.8, hydration: 0.8, sleepPressure: 0.15 },
-      enable:
-        id === "samira"
-          ? { doze: { posture: "reclined", stimulation: 0.1 } }
-          : {},
-      voices: [
-        { voiceId: "yusuf", trust: 0.75 },
-        { voiceId: "danyal", trust: 0.9 },
-        { voiceId: "tariq", trust: 0.6 },
-      ],
-    }),
-  );
   const s: State = {
-    schema: "left-hand@4",
+    schema: "left-hand@5",
     engine: FRAMEWORK_VERSION,
     seed,
+    carryover: copy(carryover),
     rng: seed,
     tick: 0,
     nightTick: 0,
@@ -226,7 +218,8 @@ export function createGame(seed = 1): State {
     phase: "evening",
     route: "door",
     player: { ...HOME, lantern: true },
-    people,
+    people: [],
+    actorsRun: opening(seed, carryover.inputs),
     actors: CAST.map(([id], i) => ({
       id,
       ...required(STARTS[i]),
@@ -249,6 +242,7 @@ export function createGame(seed = 1): State {
     inputs: [],
     routineOffset: 0,
   };
+  refresh(s);
   return s;
 }
 /** True when an earlier explanation left a trusting neighbour who shortens collection. */
@@ -257,10 +251,10 @@ function neighbourAssists(s: State): boolean {
     (h) =>
       h.delivered &&
       h.witness?.recovered === "explain" &&
-      relationshipWith(
-        required(s.people.find((p) => p.id === h.witness?.id)),
-        "yusuf",
-      ).trust > 0.5,
+      (required(
+        s.people.find((p) => p.id === h.witness?.id),
+      ).social.relationships.find((r) => r.otherId === "yusuf")?.trust ?? 0.5) >
+        0.5,
   );
 }
 /** Dawn-clock seconds the well collection will take on the coming night. */
@@ -269,29 +263,15 @@ export function upcomingWellSeconds(s: State): number {
 }
 function chooseRoutines(s: State) {
   s.routineOffset = Math.floor(random(s) * 80);
+  const choices = nightRoutines(s);
   for (const a of s.actors) {
-    const p = required(s.people.find((p) => p.id === a.id));
-    const offers: Affordance[] = [
-      {
-        id: "well",
-        action: "check-well",
-        label: "check the well on the evening round",
-        duration: 1,
-        effort: 0.1,
-        advertises: { competence: 0.4 },
-      },
-      {
-        id: "lane",
-        action: "walk-lane",
-        label: "walk the lane before bed",
-        duration: 1,
-        effort: 0.05,
-        advertises: { leisure: 0.3 },
-      },
-    ];
-    const choice = decide(p, offers);
+    if (a.id === "samira") {
+      a.routine = "sleeping at home";
+      continue;
+    }
+    const choice = choices[a.id];
     a.routine =
-      a.id !== "tariq" && choice.chosenAffordanceId === "well"
+      a.id !== "tariq" && choice === "check-well"
         ? "checking the well"
         : "walking the lane";
   }
@@ -334,11 +314,6 @@ function startNight(s: State) {
     Object.assign(a, STARTS[i]);
     a.reaction = "";
   });
-  const samira = required(s.people[2]);
-  if (samira.body.doze) {
-    samira.body.doze.since = samira.now;
-    samira.body.asleep = true;
-  }
   chooseRoutines(s);
   s.status = `Night ${s.night}: ${s.route === "door" ? "Samira takes the envelope at her door. If no neighbour sees your envelope, only her household knows it was you" : `Danyal, who keeps the well, collects the envelope ${wellDelay(s) / 10} seconds after you leave it${s.assistedWell ? " (your earlier explanation already saves 3 seconds)" : ""}${s.exposureNights ? ", longer now because Samira waits to meet him alone" : ""}. He must collect it before dawn`}. Then return home. Your lantern is lit: light lets a nearby neighbour see you. Hidden, you stay unseen but lose warmth; if the warmth bar empties, a neighbour must carry you home.${s.rescues ? ` Your rescue left you exhausted: tonight you have ${nightLimit(s) / 10} seconds before you must rest.` : ""}`;
 }
@@ -383,7 +358,7 @@ function encounter(
   const repeat = s.promised.includes(id);
   s.witness = { id, place, fact, explanation, recovered: null, sight, repeat };
   s.recoveryPending = true;
-  perceive(p, [
+  perceive(s, p.id, [
     {
       at: p.now,
       channel: "saw",
@@ -437,7 +412,7 @@ function recover(s: State, choice: Reply) {
     s.conversationTicksRemaining = 30;
     const summary =
       "The envelope is for Idris and Samira. Please deliver it if you find it, and let them choose what to say.";
-    perceive(p, [
+    perceive(s, p.id, [
       {
         at: p.now,
         channel: "told",
@@ -467,7 +442,7 @@ function recover(s: State, choice: Reply) {
   if (choice === "ask") {
     s.conversationTicksRemaining = 10;
     s.promised.push(p.id);
-    perceive(p, [
+    perceive(s, p.id, [
       {
         at: p.now,
         channel: "told",
@@ -483,7 +458,7 @@ function recover(s: State, choice: Reply) {
   }
   if (choice === "joke") {
     s.conversationTicksRemaining = 10;
-    perceive(p, [
+    perceive(s, p.id, [
       {
         at: p.now,
         channel: "told",
@@ -620,7 +595,7 @@ function morning(s: State, reason: string, rescued = false) {
   for (const id of ["idris", "samira"]) {
     const p = required(s.people.find((p) => p.id === id));
     if (!promise)
-      perceive(p, [
+      perceive(s, p.id, [
         {
           at: p.now,
           channel: "told",
@@ -632,7 +607,7 @@ function morning(s: State, reason: string, rescued = false) {
         },
       ]);
     if (exposed)
-      perceive(p, [
+      perceive(s, p.id, [
         {
           at: p.now,
           channel: "social",
@@ -649,7 +624,7 @@ function morning(s: State, reason: string, rescued = false) {
         },
       ]);
     if (talk && id === "idris")
-      perceive(p, [
+      perceive(s, p.id, [
         {
           at: p.now,
           channel: "heard",
@@ -663,7 +638,7 @@ function morning(s: State, reason: string, rescued = false) {
         },
       ]);
     if (thanked)
-      perceive(p, [
+      perceive(s, p.id, [
         {
           at: p.now,
           channel: "social",
@@ -679,7 +654,7 @@ function morning(s: State, reason: string, rescued = false) {
         },
       ]);
     if (s.deliveredTonight && w?.recovered === "explain")
-      perceive(p, [
+      perceive(s, p.id, [
         {
           at: p.now,
           channel: "told",
@@ -780,7 +755,7 @@ function receiveAid(s: State) {
   // Samira sees Yusuf at her own door even if a neighbour saw him earlier.
   s.directHandoffTonight = s.route === "door";
   if (s.directHandoffTonight)
-    perceive(required(s.people[2]), [
+    perceive(s, "samira", [
       {
         at: required(s.people[2]).now,
         channel: "saw",
@@ -796,8 +771,9 @@ function receiveAid(s: State) {
   s.delivered++;
   s.wellPendingTick = null;
   const p = required(s.people[2]);
+  interrupt(s, "samira");
   // The host authors the audible knock. HF owns waking at its existing salience gate.
-  perceive(p, [
+  perceive(s, p.id, [
     {
       at: p.now,
       channel: "heard",
@@ -812,7 +788,7 @@ function receiveAid(s: State) {
           : "The well keeper knocks and hands over the labelled envelope.",
     },
   ]);
-  perceive(p, [
+  perceive(s, p.id, [
     {
       at: p.now,
       channel: "saw",
@@ -913,7 +889,7 @@ function normalized(c: Command): Command {
   return copy(c);
 }
 /** Mutates and returns the authoritative state. One call is one fixed 10 Hz tick.
- * One tick advances one game second (HF time is measured in minutes).
+ * One tick advances one game second (HF time uses integer milliseconds).
  */
 export function step(s: State, command?: Command): State {
   const conversing = s.conversationTicksRemaining > 0;
@@ -926,6 +902,7 @@ export function step(s: State, command?: Command): State {
     startNight(s);
   } else if (command?.type === "next" && s.phase === "morning") {
     if (s.night === 3) {
+      closeChapter(s);
       s.phase = "ended";
       const nights = s.history.filter((h) => h.delivered).map((h) => h.night);
       s.outcome =
@@ -994,8 +971,7 @@ export function step(s: State, command?: Command): State {
     }
   }
   s.tick++;
-  const now = 1200 + s.tick / 60;
-  for (const p of s.people) advancePerson(p, now);
+  advance(s, s.tick);
   required(s.actors[0]).x = s.player.x;
   required(s.actors[0]).y = s.player.y;
   if (s.phase === "night") {
@@ -1211,7 +1187,7 @@ export function hash(s: State): string {
 }
 export function exportRun(s: State): Run {
   return copy({
-    schema: "left-hand-run@4",
+    schema: "left-hand-run@5",
     engine: s.engine,
     seed: s.seed,
     ticks: s.tick,
@@ -1222,13 +1198,16 @@ export function exportRun(s: State): Run {
 }
 export function replayRun(run: Run): State {
   if (
-    run.schema !== "left-hand-run@4" ||
+    run.schema !== "left-hand-run@5" ||
     run.engine !== FRAMEWORK_VERSION ||
     !Number.isSafeInteger(run.ticks) ||
     run.ticks < 0
   )
-    throw new Error("Incompatible run");
-  const s = createGame(run.seed);
+    throw new Error(
+      "This run uses an unsupported engine or save version. Keep the file and start fresh.",
+    );
+  verifyArchive(run.state.actorsRun);
+  const s = createGame(run.seed, run.state.carryover);
   let cursor = 0;
   for (let t = 0; t < run.ticks; t++) {
     const e = run.inputs[cursor];
