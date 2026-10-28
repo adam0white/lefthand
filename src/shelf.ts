@@ -55,7 +55,7 @@ export function loadSession(storage: Pick<Storage, "getItem">): Session | null {
       context: null,
       preserveSave: true,
       status:
-        "This saved run cannot be resumed. Keep the saved file and start a new game.",
+        "This saved run cannot be resumed. It is saved in this browser. Choose Download run to keep a copy, then New game to start fresh.",
     };
   }
 }
@@ -111,7 +111,7 @@ export async function freshSession(
       state,
       context: { heads, claims, source },
       status: blocked.length
-        ? `${blocked.map((p) => canonicalCast(p.castId).name).join(", ")} could not continue from the saved chapter. Continue or export that chapter. The others are ready.`
+        ? `${blocked.map((p) => canonicalCast(p.castId).name).join(", ")} could not join from their other game, so they start fresh here.`
         : "Shared people are ready.",
     };
   } catch {
@@ -119,7 +119,7 @@ export async function freshSession(
       state: createGame(seed),
       context: null,
       status:
-        "Shared admission was not confirmed. This run is local; continue or export the source chapter before trying again.",
+        "The people shared between games could not be reached. This game is saved in this browser only; your people will not carry over this time.",
     };
   }
 }
@@ -171,7 +171,7 @@ export async function checkpoint(
   }
   if (!envelopes.length)
     return skipped
-      ? "People with unfinished routines remain in this chapter."
+      ? "Some people are still busy here and were not carried to your other games."
       : session.status;
   try {
     await shelf.request({ action: "putBatch", envelopes, expectedHeads });
@@ -180,7 +180,7 @@ export async function checkpoint(
       context.claims[p.castId] = p;
     }
     return skipped
-      ? "Some people remain in this chapter because their routines are unfinished."
+      ? "Some people are still busy here and were not carried to your other games."
       : "People saved to the shared shelf.";
   } catch {
     session.context = null;
