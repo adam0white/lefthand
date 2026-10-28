@@ -174,3 +174,53 @@ Matching row: **G2 / Portable admission (contract)** in `human-framework/docs/hf
 The unshipped HF 4.5.1/client 0.5.2 candidate was preserved before restoring the released source. `~/code/.lab-scratch/stale-patches/lefthand-days-lh-hf4.patch` contains tracked changes; `.untracked.tgz` contains the new actor adapter, controls, tests and official client bytes. `.repro.tgz` retains the standalone reproduction, fictional authored fixture, exact package/lock, supply-chain configuration and observed result. The unpacked reproducer lives at `~/code/.lab-scratch/codex/lefthand-hf4-repro/`: run `PATH=/opt/homebrew/bin:$PATH pnpm install --frozen-lockfile`, then `pnpm repro`. It imports only the installed public HF package and survives candidate-worktree cleanup.
 
 G1 remains a proof gate. A candidate headless route completed 675 ticks (600 without input), delivered three envelopes and replayed the full game and HF archive exactly. It measured tick p50 1.90 ms, p95 25.90 ms, maximum 220.29 ms, a 1,186,581-byte export and 4,914.37 ms whole-game verification on this machine. These measurements supported a proposed game-specific 50 ms p95 host budget per 100 ms interval and a 500 ms discrete-plan budget; they do not prove browser frame cost or the missing sleep behavior. The candidate remains unshipped because G5 fails. Its final known regression result is a failing real-doze handoff assertion; no green HF 4 lane, browser CI or deployment is claimed.
+
+
+## HF 4.6.0 retry — 2026-10-28
+
+Remaining: **G2 shared-shelf source and receiving admission**. G5 is resolved on
+published HF 4.6.0. The released game remains HF 3.2.0/client 0.4.15 until the
+required reciprocal shelf journey is supported. This supersedes the earlier
+G5 blocker and its recommendation; no HF source was changed.
+
+The preserved candidate was restored, then both actor and official client 0.5.2
+bridge dependencies were pinned to registry HF 4.6.0. Its three focused boundary
+controls passed: seed 7 naturally dozes Samira, an actual door handoff wakes her,
+JSON continuation and read-only preview remain exact, pending interruption
+identities survive restore/replay, and old exports receive a keep-file/start-fresh
+refusal. Lint and both typechecks passed. A 675-tick three-night control delivered
+all three envelopes and replayed game and HF archives exactly. These are candidate
+checks, not a green whole-game release lane or a deployed port.
+
+G2 was tested through the published **hf-portable-person/1** contract rather than
+assuming the missing old native passport blocked projection. HF 4.6.0 successfully
+projects the actual pre-plan seed-7 Yusuf actor with source game `lefthand`, engine
+`4.6.0`, person `yusuf` and canonical identity `hf.cast.yusuf.well`, revision `1`.
+Primitive admission into Yusuf's actual authored opening preserves carried traits.
+A valid checksummed persona envelope can be created in memory. However, official
+client 0.5.2 rejects source projection with "This person has no authored chapter
+in this game." Its receiving admission rejects that envelope with "This saved
+person has an incompatible identity or source chapter. Keep the source chapter
+or export it." The origin is allowed, but the canonical Yusuf record lists only
+Well/Valley and the portable role map has no Left Hand entry. Both registry
+chapter membership and source/target roles need a published contract. Primitive
+actor admission does not establish shelf admission, ownership or reciprocal
+receiving-game support. No production shelf was read or changed by this control.
+
+Matching row: **G2 / Portable admission (contract)** in
+`human-framework/docs/hf4-game-needs.md`. Current `docs/framework.md` also explicitly
+withholds Voice's portable Hacer/Selin routes pending supported departure routines.
+The missing published Left Hand source/target role and reciprocal receiving-game
+contracts remain an external client/shelf dependency, not an HF projection or wake
+failure. Recommendation: publish those mappings through the existing portable
+route, then prove actual departure, arrival and return with unchanged rejected
+heads. Revisit **2026-11-03**. No owner question is pending. Do not fabricate a
+Valley passport or bypass shared registry/ownership validation.
+
+Recovery: `~/code/.lab-scratch/stale-patches/lefthand-hf460-retry.patch` and
+`.untracked.tgz` preserve the updated candidate. `codex/lefthand-460-play.json`
+and `lefthand-460-control.json` preserve its current-version export and replay
+receipt. `codex/portable-control/control.ts` and `receipt.json` preserve the bounded
+portable probe; restore the candidate before running its imports. The final worker
+report owns delivery receipts. The full candidate lane was cancelled while waiting
+for the shared suite lock after G2 was confirmed; it is not claimed green.
