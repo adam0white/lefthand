@@ -341,9 +341,13 @@ describe("authoritative host", () => {
     }
     expect(hash(restored)).toBe(hash(s));
     const before = hash(s);
-    const person = restored.people[0];
-    if (!person) throw Error("Missing player");
-    person.rng.a++;
+    const tampered: State = JSON.parse(JSON.stringify(restored));
+    const rng = tampered.actorsRun.current.people.yusuf?.rng;
+    if (!rng) throw Error("Missing player RNG");
+    Object.assign(rng, { a: rng.a + 1 });
+    expect(hash(tampered)).not.toBe(before);
+    expect(() => replayRun(exportRun(tampered))).toThrow();
+    restored.rng++;
     expect(hash(restored)).not.toBe(before);
     const fact = s.witness?.fact;
     for (let i = 0; i < 20; i++) step(s);
@@ -665,7 +669,7 @@ describe("panel fix cycle (F-1626 to F-1631)", () => {
     const run = exportRun(createGame(1));
     expect(() =>
       replayRun({ ...run, schema: "left-hand-run@3" } as never),
-    ).toThrow("Incompatible run");
+    ).toThrow("Keep the file and start fresh");
   });
 });
 

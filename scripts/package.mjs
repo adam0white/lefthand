@@ -45,8 +45,12 @@ fs.writeFileSync(
   "dist/release.json",
   JSON.stringify({
     app: "lefthand",
-    framework: "3.2.0",
-    engine: "3.2.0",
+    framework: JSON.parse(fs.readFileSync("package.json", "utf8")).dependencies[
+      "@adam0white/human-framework"
+    ],
+    engine: JSON.parse(fs.readFileSync("package.json", "utf8")).dependencies[
+      "@adam0white/human-framework"
+    ],
     godot: "4.7.2",
     commit,
     dirty,

@@ -16,7 +16,14 @@ import {
   step,
   upcomingWellSeconds,
 } from "./host";
-import { restartGame } from "./restart";
+import {
+  channel,
+  checkpoint,
+  freshSession,
+  loadSession,
+  type Session,
+  saveSession,
+} from "./shelf";
 import "./style.css";
 
 const element = <T extends HTMLElement>(id: string): T => {
@@ -35,11 +42,64 @@ app.innerHTML = `<main>
 <section id="night" aria-label="Delivery controls" hidden><div id="recovery" hidden><p id="recovery-line"></p><div class="choices"><button id="explain">Explain</button><button id="quiet">Keep quiet</button><button id="joke">Make a joke</button><button id="ask">Ask him not to tell</button></div></div><div id="walking"><div class="action-row"><button id="lantern">Lantern lit · hide (L)</button><button id="act">Leave envelope</button></div><div id="warmth" class="warmth"><span id="cold-warning" role="status"></span><span class="bar" role="meter" aria-label="Warmth" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><i id="warmth-fill"></i></span></div><div class="directions" aria-label="Move"><button data-move="0,-1" class="up" aria-label="Move north">↑</button><button data-move="-1,0" class="left" aria-label="Move west">←</button><button data-move="0,1" class="down" aria-label="Move south">↓</button><button data-move="1,0" class="right" aria-label="Move east">→</button></div><p class="hint">Arrows / WASD move · L lantern · Enter deliver or return home</p></div></section>
 <section id="morning" aria-label="Morning accounts" hidden><div id="morning-lines"></div><button id="next">Next evening</button></section>
 <section id="ending" hidden><h2 id="ending-title"></h2><p id="ending-line"></p><button id="again">Play again</button></section>
-<section id="menu" class="menu" aria-label="Menu" hidden><div class="menu-top"><h2>Paused</h2><button id="menu-close">Return to play</button></div><p><label><input id="recording" type="checkbox"> Recording</label> · <a href="/third-party-notices.txt" target="_blank" rel="noopener">Licenses</a></p><div class="privacy-debug"><a href="${PRIVACY_URL}" target="_blank" rel="noopener">Lab privacy</a><details id="debug"><summary>Debug</summary><div class="menu-actions"><button id="verify">Verify replay</button></div></details></div><div class="menu-actions"><button id="download">Download run</button><button id="feedback-stop">I’m stopping</button><button id="feedback-confused">I’m confused</button><button id="fullscreen">Fullscreen</button><button id="new">New game</button><a id="all-games" href="https://human.adamwhite.work/">All games</a></div><div id="new-confirm" hidden><p>End this run and prepare a new envelope?</p><button id="new-yes">Start new game</button><button id="new-no">Keep this run</button></div><form id="feedback" hidden><label for="note">Add a note, if you like</label><textarea id="note" rows="3" maxlength="4000"></textarea><label><input id="share-run" type="checkbox"> Share this run with the note (turns recording on)</label><div class="choices"><button type="submit" id="feedback-send">Send feedback</button><button type="button" id="feedback-cancel">Cancel</button></div></form><p id="menu-status" role="status"></p></section>
+<section id="menu" class="menu" aria-label="Menu" hidden><div class="menu-top"><h2>Paused</h2><button id="menu-close">Return to play</button></div><p><label><input id="recording" type="checkbox"> Recording</label> · <a href="/third-party-notices.txt" target="_blank" rel="noopener">Licenses</a></p><div class="privacy-debug"><a href="${PRIVACY_URL}" target="_blank" rel="noopener">Lab privacy</a><details id="debug"><summary>Debug</summary><div class="menu-actions"><button id="verify">Verify replay</button></div></details></div><div class="menu-actions"><button id="download">Download run</button><button id="feedback-stop">I’m stopping</button><button id="feedback-confused">I’m confused</button><button id="fullscreen">Fullscreen</button><button id="new">New game</button><a href="https://human.adamwhite.work/lab/people/">People across games</a><a id="all-games" href="https://human.adamwhite.work/">All games</a></div><div id="new-confirm" hidden><p>End this run and prepare a new envelope?</p><button id="new-yes">Start new game</button><button id="new-no">Keep this run</button></div><form id="feedback" hidden><label for="note">Add a note, if you like</label><textarea id="note" rows="3" maxlength="4000"></textarea><label><input id="share-run" type="checkbox"> Share this run with the note (turns recording on)</label><div class="choices"><button type="submit" id="feedback-send">Send feedback</button><button type="button" id="feedback-cancel">Cancel</button></div></form><p id="shelf-status" role="status"></p><p id="menu-status" role="status"></p></section>
 </main>`;
 
 const lab = createLab({ game: "lefthand" });
 let state = createGame(crypto.getRandomValues(new Uint32Array(1))[0] ?? 1);
+let session: Session = {
+  state,
+  context: null,
+  status: "Preparing shared people…",
+};
+let preparing = true;
+let checkpointing = false;
+let shelf: ReturnType<typeof channel> | undefined;
+const getShelf = () => (shelf ??= channel());
+function save() {
+  session.state = state;
+  try {
+    saveSession(localStorage, session);
+  } catch {
+    session.status =
+      "This run could not be saved in this browser. Download it from the menu.";
+  }
+  setText("shelf-status", session.status);
+}
+async function source() {
+  let build = "local";
+  try {
+    const response = await fetch("/release.json");
+    if (response.ok) {
+      const data = (await response.json()) as { commit?: unknown };
+      if (typeof data.commit === "string") build = data.commit;
+    }
+  } catch {
+    /* local build */
+  }
+  return { game: "lefthand", engine: "4.8.0", build, rules: "left-hand-5" };
+}
+async function start(seed: number) {
+  preparing = true;
+  session = await freshSession(seed, getShelf(), await source());
+  state = session.state;
+  preparing = false;
+  lastStep = performance.now();
+  save();
+  update();
+}
+async function checkpointNow() {
+  if (checkpointing || preparing || !session.context || state.phase !== "ended")
+    return;
+  checkpointing = true;
+  try {
+    session.state = state;
+    session.status = await checkpoint(session, getShelf());
+    save();
+  } finally {
+    checkpointing = false;
+  }
+}
 const queue: Command[] = [];
 let rendererReady = false;
 let menuOpen = false;
@@ -71,6 +131,7 @@ const show = (id: string, visible: boolean) => {
 };
 const clone = <T>(value: T): T => structuredClone(value);
 function enqueue(command: Command) {
+  if (preparing || session.preserveSave) return;
   if (command.type === "recover") {
     for (let i = queue.length - 1; i >= 0; i--)
       if (
@@ -229,6 +290,8 @@ function update() {
     setText("ending-line", state.outcome);
   }
   if (key !== lastScreen) {
+    save();
+    if (phase === "ended") void checkpointNow();
     lab.screen(key);
     lastScreen = key;
     // On wide screens the map pushes morning and ending text below the fold.
@@ -240,7 +303,9 @@ function update() {
   }
 }
 function setMenu(open: boolean) {
+  if (preparing) return;
   menuOpen = open;
+  if (open) save();
   for (const child of document.querySelectorAll<HTMLElement>("main > *"))
     if (child.id !== "menu") child.inert = open;
   show("menu", open);
@@ -250,17 +315,15 @@ function setMenu(open: boolean) {
   else canvas.focus({ preventScroll: true });
 }
 function reset() {
+  if (preparing || checkpointing) return;
   queue.length = 0;
-  state = restartGame(
-    state.seed,
-    crypto.getRandomValues(new Uint32Array(1))[0] ?? 1,
-  );
+  const entropy = crypto.getRandomValues(new Uint32Array(1))[0] ?? 1;
+  const seed = ((entropy & ~3) | ((state.seed ^ 3) & 3)) >>> 0;
   morningKey = "";
-  lastStep = performance.now();
   show("new-confirm", false);
   show("feedback", false);
   setMenu(false);
-  update();
+  void start(seed);
 }
 function recordingUI() {
   element<HTMLInputElement>("recording").checked = lab.telemetryOn;
@@ -341,7 +404,13 @@ Object.assign(window, {
 
 setInterval(() => {
   const now = performance.now();
-  if (!rendererReady || menuOpen || document.hidden) {
+  if (
+    preparing ||
+    session.preserveSave ||
+    !rendererReady ||
+    menuOpen ||
+    document.hidden
+  ) {
     lastStep = now;
     return;
   }
@@ -356,6 +425,10 @@ setInterval(() => {
     }
   }
 }, 20);
+window.addEventListener("pagehide", () => {
+  save();
+  void checkpointNow();
+});
 document.addEventListener("visibilitychange", () => {
   lastStep = performance.now();
 });
@@ -430,8 +503,10 @@ element<HTMLInputElement>("recording").onchange = (event) => {
   lab.setTelemetryOff(!(event.target as HTMLInputElement).checked);
   recordingUI();
 };
-element<HTMLAnchorElement>("all-games").onclick = (event) => {
+element<HTMLAnchorElement>("all-games").onclick = async (event) => {
   event.preventDefault();
+  save();
+  await checkpointNow();
   location.href = gameNavigation("https://human.adamwhite.work/");
 };
 element("fullscreen").onclick = () => {
@@ -450,7 +525,14 @@ element("again").onclick = reset;
 element("download").onclick = () => {
   const run = exportRun(state);
   const url = URL.createObjectURL(
-    new Blob([JSON.stringify(run, null, 2)], { type: "application/json" }),
+    new Blob(
+      [
+        session.preserveSave
+          ? (localStorage.getItem("lefthand-run@5") ?? "")
+          : JSON.stringify(run, null, 2),
+      ],
+      { type: "application/json" },
+    ),
   );
   const a = document.createElement("a");
   a.href = url;
@@ -527,6 +609,19 @@ async function load() {
     focusCanvasOnStart: false,
     ensureCrossOriginIsolationHeaders: false,
   }).startGame({ mainPack: manifest.pack });
+}
+try {
+  const saved = loadSession(localStorage);
+  if (saved) {
+    session = saved;
+    state = saved.state;
+    preparing = false;
+    lastScreen = `${state.night}:${state.phase}`;
+    update();
+    if (session.preserveSave) setMenu(true);
+  } else void start(state.seed);
+} catch {
+  void start(state.seed);
 }
 update();
 void load().catch(() => {
