@@ -3,6 +3,7 @@ import {
   acceptPersonaBatch,
   createPersona,
   preparePersonaLife,
+  portableWriteBlockers,
   validatePersona,
   type CastShelf,
   type PersonaEnvelope,
@@ -27,12 +28,13 @@ const active = (
 if (active.length) throw Error("Completed chapter still has active routines");
 const sourceInfo = {
   game: "lefthand",
-  engine: "4.8.0",
+  engine: "4.10.0",
   build: "control",
   rules: "left-hand-5",
 };
+const eligible = SHELF_CAST.filter(([id]) => !portableWriteBlockers(`hf.cast.${id}.well`, "lefthand").length);
 const parents = await Promise.all(
-  SHELF_CAST.map(async ([id]) =>
+  eligible.map(async ([id]) =>
     createPersona({
       format: "hf-persona/1",
       castId: `hf.cast.${id}.well`,
@@ -92,13 +94,13 @@ function memoryShelf(initial: PersonaEnvelope[]) {
 const shared = memoryShelf(await Promise.all(parents.map(validatePersona)));
 const session = await freshSession(7, shared.shelf, sourceInfo);
 if (
-  session.state.carryover.inputs.length !== SHELF_CAST.length ||
+  session.state.carryover.inputs.length !== eligible.length ||
   session.state.carryover.blocked.length
 )
   throw Error(
     `Admission failed: ${JSON.stringify(session.state.carryover.blocked)}`,
   );
-for (const [id] of SHELF_CAST) {
+for (const [id] of eligible) {
   const parent = parents.find((p) => p.castId === `hf.cast.${id}.well`);
   if (!parent || shared.store.heads[parent.castId] === parent.revision)
     throw Error(`${id} was not claimed`);
@@ -130,12 +132,12 @@ if (
 )
   throw Error("Local resume failed");
 
-// A checksummed envelope cannot claim Samira using Yusuf's source actor.
-const yusuf = parents.find((p) => p.castId === "hf.cast.yusuf.well");
-if (!yusuf) throw Error("Missing Yusuf source");
-const wrongId = "hf.cast.samira.well";
-const portable = structuredClone(yusuf.transfer.portable) as { castId: string };
-portable.castId = wrongId;
+// A checksummed envelope cannot claim Tariq using another source actor.
+const yusuf = parents.find((p) => p.castId === "hf.cast.tariq.well");
+if (!yusuf) throw Error("Missing Tariq source");
+const wrongId = "hf.cast.tariq.well";
+const portable = structuredClone(yusuf.transfer.portable) as { source: { personId: string } };
+portable.source.personId = "yusuf";
 const wrong = await createPersona({
   format: "hf-persona/1",
   castId: wrongId,
@@ -156,10 +158,10 @@ if (
 console.log(
   JSON.stringify({
     source: "completed three-night run",
-    admitted: SHELF_CAST.map(([id]) => id),
+    admitted: eligible.map(([id]) => id),
     blocked: wrongId,
     replay: run.finalHash,
-    tariq: "local-only",
+    tariq: "shared, peers verified",
     shelfReadsOnResume: shared.reads - before,
   }),
 );

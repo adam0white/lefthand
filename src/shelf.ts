@@ -9,6 +9,7 @@ import {
   type PersonaEnvelope,
   type PersonaRequest,
   personaChannel,
+  portableWriteBlockers,
 } from "@adam0white/lab-client";
 import { CAST, departure, validateArrival } from "./actors.ts";
 import {
@@ -20,8 +21,7 @@ import {
 } from "./host.ts";
 
 const KEY = "lefthand-run@5";
-// Tariq stays local until Warren can skip unsupported arrivals (2026-11-03).
-export const SHELF_CAST = CAST.filter(([id]) => id !== "tariq");
+export const SHELF_CAST = CAST;
 const ids = SHELF_CAST.map(([id]) => `hf.cast.${id}.well`);
 type Source = PersonaEnvelope["source"];
 type Context = {
@@ -137,7 +137,7 @@ export async function checkpoint(
     return session.status;
   const envelopes: PersonaEnvelope[] = [];
   const expectedHeads: Record<string, string | null> = {};
-  let skipped = 0;
+  const skipped: string[] = [];
   for (const [id] of SHELF_CAST) {
     const castId = `hf.cast.${id}.well`;
     if (
@@ -145,6 +145,10 @@ export async function checkpoint(
       state.carryover.blocked.some((p) => p.castId === castId)
     )
       continue;
+    if (portableWriteBlockers(castId, "lefthand").length) {
+      skipped.push(canonicalCast(castId).name);
+      continue;
+    }
     const parent = context.claims[castId];
     try {
       const branchId = parent?.branchId ?? crypto.randomUUID();
@@ -166,12 +170,12 @@ export async function checkpoint(
       );
       expectedHeads[castId] = context.heads[castId] ?? null;
     } catch {
-      skipped++;
+      skipped.push(canonicalCast(castId).name);
     }
   }
   if (!envelopes.length)
-    return skipped
-      ? "Some people are still busy here and were not carried to your other games."
+    return skipped.length
+      ? `${skipped.join(", ")} could not be carried to your other games. Their shared records stay unchanged.`
       : session.status;
   try {
     await shelf.request({ action: "putBatch", envelopes, expectedHeads });
@@ -179,8 +183,8 @@ export async function checkpoint(
       context.heads[p.castId] = p.revision;
       context.claims[p.castId] = p;
     }
-    return skipped
-      ? "Some people are still busy here and were not carried to your other games."
+    return skipped.length
+      ? `${skipped.join(", ")} could not be carried to your other games. Their shared records stay unchanged.`
       : "People saved to the shared shelf.";
   } catch {
     session.context = null;

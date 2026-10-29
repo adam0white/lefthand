@@ -38,7 +38,7 @@ A full-width Godot village sits between a short spoken line and thumb-sized dire
 
 ## Deferred
 
-- 2026-10-28: Re-add Tariq to the shelf role map once Warren is live on HF 4 with per-person skips (client 0.5.1+); target 2026-11-03. Tariq remains a local actor; this chapter neither reads nor writes his shared head.
+- Completed 2026-10-29: Tariq restored after checking live Well and Warren client 0.5.5+ with per-person skips. The general peer gate remains enforced.
 
 - Iteration 2 (2026-10-26) resolves the overlapping person/well labels, unmarked door, ambiguous lantern, timer drift, duplicate/stale text and mixed clock units. The lantern starts lit and names its state and action. All visible durations use the dawn clock seconds.
 
@@ -238,3 +238,24 @@ Source checkpoints project actual actors only after the final night and after th
 Local saves happen at screen transitions, pause and page exit. Resume verifies the exported run. Interrupted shared writes can remain unconfirmed; a missing reply never establishes non-write. Finishing and All games trigger checkpoints, while page-exit delivery is best-effort. The people shelf is linked as People across games.
 
 Acceptance uses one full three-night headless control, the actual doze/delivery regression, current-version continuation and replay, a real completed-actor shelf admission/resume control, and the existing Chromium/WebKit phone/desktop suite. The game-specific budget remains 50 ms p95 per 100 ms host interval and 500 ms per discrete plan; measurements and exact source/CI/deployment receipts are in the G2-SHELF worker report. The earlier failed candidate records above remain historical evidence. Source, published artifacts, deployment and player acceptance are separate outcomes.
+
+
+### Tariq and narration, 2026-10-29
+
+Done means one merged Left Hand PR on HF 4.10.0 and the published client/kit,
+exact green merged CI, the normal deploy with `dirty:false`, and browser evidence
+that Tariq arrives here while Warren can skip his incompatible chapter. The
+owner accepts the delivery through the report in `.lab-scratch/codex/tariq-lh.md`.
+The HF identity binding ships separately under coordinator review.
+
+Design decision: use HF's single seeded narration route with the game's own
+winter-evening wording and action forms. Menu → People tonight reads each
+person's latest public self narration. Authored delivery, witness and ending
+accounts retain their factual meaning. No second random or rendering route.
+
+Tariq's five-person role table replaces the temporary exclusion. Departures and
+arrival claims use the SDK's general peer gate. Only Well and Warren have verified
+reader entries for this change. Unknown peers keep Yusuf, Idris, Samira and Danyal
+read-only; the menu names skipped actors, and their source heads stay unchanged.
+Clinical, unfinished work, source identity, ownership and atomic head checks stay
+in force. A peer's ability to skip is not a promise that it can admit the history.

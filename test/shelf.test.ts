@@ -43,11 +43,11 @@ describe("shared shelf", () => {
     };
     const session = await freshSession(7, shelf, {
       game: "lefthand",
-      engine: "4.8.0",
+      engine: "4.10.0",
       build: "local",
       rules: "left-hand-5",
     });
-    expect(calls[0]?.castIds).not.toContain("hf.cast.tariq.well");
+    expect(calls[0]?.castIds).toContain("hf.cast.tariq.well");
     expect(session.state.carryover.blocked.map((p) => p.castId)).toEqual([
       blocked,
       foreign,
@@ -60,6 +60,7 @@ describe("shared shelf", () => {
     expect(
       writes.some((p) => p.castId === blocked || p.castId === foreign),
     ).toBe(false);
+    expect(writes.map((p) => p.castId)).toEqual(["hf.cast.tariq.well"]);
     session.state.phase = "evening";
     const data = new Map<string, string>();
     const storage = {
@@ -77,14 +78,14 @@ describe("shared shelf", () => {
     expect(calls).toHaveLength(count);
   });
   it("carries changed incoming traits into the authored opening", async () => {
-    const id = "hf.cast.samira.well";
+    const id = "hf.cast.tariq.well";
     const source = {
       game: "lefthand",
-      engine: "4.8.0",
+      engine: "4.10.0",
       build: "local",
       rules: "left-hand-5",
     };
-    const transfer = departure(createGame(9), "samira");
+    const transfer = departure(createGame(9), "tariq");
     const portable = transfer.portable as {
       state: { traits: { honesty: number } };
     };
@@ -128,7 +129,7 @@ describe("shared shelf", () => {
       },
     };
     const session = await freshSession(7, shelf, source);
-    expect(session.state.actorsRun.current.people.samira?.traits.honesty).toBe(
+    expect(session.state.actorsRun.current.people.tariq?.traits.honesty).toBe(
       0.23,
     );
     expect(session.state.carryover.inputs[0]?.parent.revision).toBe(
