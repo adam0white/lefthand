@@ -213,7 +213,7 @@ packages:
     engines: {node: '>=24'}
 
   '@adam0white/lab-client@file:vendor/adam0white-lab-client-0.5.10.tgz':
-    resolution: {integrity: sha512-OaRr/PUAtUcfaNWL08QinJ2iodvxqxuk7BBasmwHW/aN8t0i7hgvKjvkIHppmsZwp54oTJ76A/VhYSVZEwx1bQ==, tarball: file:vendor/adam0white-lab-client-0.5.10.tgz}
+    resolution: {integrity: sha512-u84J5vKInygFFpMdskYAJUgbaXRMJsdNOUXSq7jwvSpm1TDL9zFaPpywCli8cupeJI5xbvX88c16BeYHLcCxzg==, tarball: file:vendor/adam0white-lab-client-0.5.10.tgz}
     version: 0.5.10
 
   '@adam0white/lab-kit@file:vendor/adam0white-lab-kit-0.5.27.tgz':
