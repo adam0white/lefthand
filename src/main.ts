@@ -4,6 +4,8 @@ import {
   gameNavigation,
   PRIVACY_URL,
 } from "@adam0white/lab-client";
+import { debugFooter } from "@adam0white/lab-kit";
+import { eveningAccounts } from "./actors.ts";
 import {
   type Command,
   canAsk,
@@ -42,8 +44,19 @@ app.innerHTML = `<main>
 <section id="night" aria-label="Delivery controls" hidden><div id="recovery" hidden><p id="recovery-line"></p><div class="choices"><button id="explain">Explain</button><button id="quiet">Keep quiet</button><button id="joke">Make a joke</button><button id="ask">Ask him not to tell</button></div></div><div id="walking"><div class="action-row"><button id="lantern">Lantern lit · hide (L)</button><button id="act">Leave envelope</button></div><div id="warmth" class="warmth"><span id="cold-warning" role="status"></span><span class="bar" role="meter" aria-label="Warmth" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><i id="warmth-fill"></i></span></div><div class="directions" aria-label="Move"><button data-move="0,-1" class="up" aria-label="Move north">↑</button><button data-move="-1,0" class="left" aria-label="Move west">←</button><button data-move="0,1" class="down" aria-label="Move south">↓</button><button data-move="1,0" class="right" aria-label="Move east">→</button></div><p class="hint">Arrows / WASD move · L lantern · Enter deliver or return home</p></div></section>
 <section id="morning" aria-label="Morning accounts" hidden><div id="morning-lines"></div><button id="next">Next evening</button></section>
 <section id="ending" hidden><h2 id="ending-title"></h2><p id="ending-line"></p><button id="again">Play again</button></section>
-<section id="menu" class="menu" aria-label="Menu" hidden><div class="menu-top"><h2>Paused</h2><button id="menu-close">Return to play</button></div><p><label><input id="recording" type="checkbox"> Recording</label> · <a href="/third-party-notices.txt" target="_blank" rel="noopener">Licenses</a></p><div class="privacy-debug"><a href="${PRIVACY_URL}" target="_blank" rel="noopener">Lab privacy</a><details id="debug"><summary>Debug</summary><div class="menu-actions"><button id="verify">Verify replay</button></div></details></div><div class="menu-actions"><button id="download">Download run</button><button id="feedback-stop">I’m stopping</button><button id="feedback-confused">I’m confused</button><button id="fullscreen">Fullscreen</button><button id="new">New game</button><a href="https://human.adamwhite.work/lab/people/">People across games</a><a id="all-games" href="https://human.adamwhite.work/">All games</a></div><div id="new-confirm" hidden><p>End this run and prepare a new envelope?</p><button id="new-yes">Start new game</button><button id="new-no">Keep this run</button></div><form id="feedback" hidden><label for="note">Add a note, if you like</label><textarea id="note" rows="3" maxlength="4000"></textarea><label><input id="share-run" type="checkbox"> Share this run with the note (turns recording on)</label><div class="choices"><button type="submit" id="feedback-send">Send feedback</button><button type="button" id="feedback-cancel">Cancel</button></div></form><p id="shelf-status" role="status"></p><p id="menu-status" role="status"></p></section>
+<section id="menu" class="menu" aria-label="Menu" hidden><div class="menu-top"><h2>Paused</h2><button id="menu-close">Return to play</button></div><p><label><input id="recording" type="checkbox"> Recording</label> · <a href="/third-party-notices.txt" target="_blank" rel="noopener">Licenses</a></p><div id="privacy-debug"></div><section aria-label="People tonight"><h3>People tonight</h3><div id="people-tonight"></div></section><div class="menu-actions"><button id="download">Download run</button><button id="feedback-stop">I’m stopping</button><button id="feedback-confused">I’m confused</button><button id="fullscreen">Fullscreen</button><button id="new">New game</button><a href="https://human.adamwhite.work/lab/people/">People across games</a><a id="all-games" href="https://human.adamwhite.work/">All games</a></div><div id="new-confirm" hidden><p>End this run and prepare a new envelope?</p><button id="new-yes">Start new game</button><button id="new-no">Keep this run</button></div><form id="feedback" hidden><label for="note">Add a note, if you like</label><textarea id="note" rows="3" maxlength="4000"></textarea><label><input id="share-run" type="checkbox"> Share this run with the note (turns recording on)</label><div class="choices"><button type="submit" id="feedback-send">Send feedback</button><button type="button" id="feedback-cancel">Cancel</button></div></form><p id="shelf-status" role="status"></p><p id="menu-status" role="status"></p></section>
 </main>`;
+
+const replayButton = document.createElement("button");
+replayButton.id = "verify";
+replayButton.textContent = "Verify replay";
+const footer = debugFooter(replayButton);
+const debug = footer.querySelector("details");
+if (!debug) throw Error("Missing Debug menu");
+debug.id = "debug";
+const privacyDebug = document.getElementById("privacy-debug");
+if (!privacyDebug) throw Error("Missing privacy footer");
+privacyDebug.append(footer);
 
 const lab = createLab({ game: "lefthand" });
 let state = createGame(crypto.getRandomValues(new Uint32Array(1))[0] ?? 1);
@@ -77,7 +90,7 @@ async function source() {
   } catch {
     /* local build */
   }
-  return { game: "lefthand", engine: "4.8.0", build, rules: "left-hand-5" };
+  return { game: "lefthand", engine: "4.10.0", build, rules: "left-hand-5" };
 }
 async function start(seed: number) {
   preparing = true;
@@ -305,7 +318,18 @@ function update() {
 function setMenu(open: boolean) {
   if (preparing) return;
   menuOpen = open;
-  if (open) save();
+  if (open) {
+    save();
+    const accounts = element("people-tonight");
+    accounts.replaceChildren();
+    for (const { name, line } of eveningAccounts(state)) {
+      const p = document.createElement("p");
+      p.textContent = `${name}: ${line}`;
+      accounts.append(p);
+    }
+    if (!accounts.childNodes.length)
+      accounts.textContent = "The evening has not begun.";
+  }
   for (const child of document.querySelectorAll<HTMLElement>("main > *"))
     if (child.id !== "menu") child.inert = open;
   show("menu", open);

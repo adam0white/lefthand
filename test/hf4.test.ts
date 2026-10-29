@@ -8,10 +8,23 @@ import {
 } from "@adam0white/human-framework";
 import { describe, expect, test } from "vitest";
 import { shortestPath } from "../scripts/policies";
-import { need, verifyArchive } from "../src/actors";
+import { eveningAccounts, need, verifyArchive } from "../src/actors";
 import { createGame, exportRun, hash, replayRun, step } from "../src/host";
 
 describe("HF 4 host boundary", () => {
+  test("the evening phrasebook renders through HF without changing replay", () => {
+    const state = createGame(13);
+    step(state, { type: "plan", route: "well" });
+    const before = exportRun(state);
+    const accounts = eveningAccounts(state);
+    expect(accounts.length).toBeGreaterThan(0);
+    expect(accounts.some(({ line }) => /Tonight|evening/.test(line))).toBe(
+      true,
+    );
+    expect(eveningAccounts(state)).toEqual(accounts);
+    expect(exportRun(state)).toEqual(before);
+    expect(eveningAccounts(replayRun(before))).toEqual(accounts);
+  });
   test("HF owns natural doze and a real handoff wakes Samira; JSON continuation and preview stay exact", () => {
     const state = createGame(7);
     step(state, { type: "plan", route: "door" });

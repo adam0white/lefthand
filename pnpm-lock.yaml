@@ -171,11 +171,14 @@ importers:
   .:
     dependencies:
       '@adam0white/human-framework':
-        specifier: 4.8.0
-        version: 4.8.0
+        specifier: 4.10.0
+        version: 4.10.0
       '@adam0white/lab-client':
-        specifier: https://github.com/adam0white/human-framework/releases/download/lab-client-v0.5.4/adam0white-lab-client-0.5.4.tgz
-        version: https://github.com/adam0white/human-framework/releases/download/lab-client-v0.5.4/adam0white-lab-client-0.5.4.tgz
+        specifier: file:vendor/adam0white-lab-client-0.5.10.tgz
+        version: file:vendor/adam0white-lab-client-0.5.10.tgz
+      '@adam0white/lab-kit':
+        specifier: file:vendor/adam0white-lab-kit-0.5.27.tgz
+        version: file:vendor/adam0white-lab-kit-0.5.27.tgz(@adam0white/lab-client@file:vendor/adam0white-lab-client-0.5.10.tgz)
     devDependencies:
       '@biomejs/biome':
         specifier: 2.6.3
@@ -205,13 +208,24 @@ packages:
     resolution: {integrity: sha512-O0t7AytAqP3ZKNdNbyfJk4sSpeniQRJ6M29IPxXe9YQOaQVnr7C8VZ945PTkc6mao/zZpxPAjK0Cuuvz/0uR1A==}
     engines: {node: '>=24'}
 
-  '@adam0white/human-framework@4.8.0':
-    resolution: {integrity: sha512-5I0LTznhT6K+59LbB7JNK169gJxNZWHz46D2/iLiQuxpFgwUSMzhj3L+exvLsRZXKTB1sVN90wpp7Cwk14NYaw==}
+  '@adam0white/human-framework@4.10.0':
+    resolution: {integrity: sha512-uAm9YqTrSzIsBoXL8uryaosPJ8UaQ+GW2ykkWnjAHFwYqX5Nu6lguUxWZyJMHB3sqS8jlTWoruAPYRUbGlnmQg==}
     engines: {node: '>=24'}
 
-  '@adam0white/lab-client@https://github.com/adam0white/human-framework/releases/download/lab-client-v0.5.4/adam0white-lab-client-0.5.4.tgz':
-    resolution: {integrity: sha512-TuxJhnqVHe47KVy6E+nx+7Nq/b4FT8esw0I5h0QQ2RrxOR9SN1cXkA7UnJ0lL0gnpDo3uUgZaqNlVOHKVV/u9w==, tarball: https://github.com/adam0white/human-framework/releases/download/lab-client-v0.5.4/adam0white-lab-client-0.5.4.tgz}
-    version: 0.5.4
+  '@adam0white/lab-client@file:vendor/adam0white-lab-client-0.5.10.tgz':
+    resolution: {integrity: sha512-u84J5vKInygFFpMdskYAJUgbaXRMJsdNOUXSq7jwvSpm1TDL9zFaPpywCli8cupeJI5xbvX88c16BeYHLcCxzg==, tarball: file:vendor/adam0white-lab-client-0.5.10.tgz}
+    version: 0.5.10
+
+  '@adam0white/lab-kit@file:vendor/adam0white-lab-kit-0.5.27.tgz':
+    resolution: {integrity: sha512-plk4nWDPnjuDk3ak1H3WPCn7XbU94yvfrsN8zdf/d5GHiGZcin6FaZEbq41jV09+S+VozitF9vTbTJRL+TQ8RA==, tarball: file:vendor/adam0white-lab-kit-0.5.27.tgz}
+    version: 0.5.27
+    engines: {node: '>=24'}
+    hasBin: true
+    peerDependencies:
+      '@adam0white/lab-client': 0.4.11 || 0.4.12 || 0.4.13 || 0.4.14 || 0.4.15 || 0.5.0 || 0.5.1 || 0.5.2 || 0.5.3 || 0.5.4 || 0.5.5 || 0.5.6 || 0.5.7 || 0.5.8 || 0.5.9 || 0.5.10
+    peerDependenciesMeta:
+      '@adam0white/lab-client':
+        optional: true
 
   '@biomejs/biome@2.6.3':
     resolution: {integrity: sha512-va/0xPku7wnfzv+D8Zpdm5uKiGJWiV8neqoEPnRjvNQQwhl4tVXS4fETs4H0CCB2rGeqJ4cu9y4iOZOnOYKAUA==}
@@ -1290,12 +1304,16 @@ snapshots:
 
   '@adam0white/human-framework@3.0.0': {}
 
-  '@adam0white/human-framework@4.8.0': {}
+  '@adam0white/human-framework@4.10.0': {}
 
-  '@adam0white/lab-client@https://github.com/adam0white/human-framework/releases/download/lab-client-v0.5.4/adam0white-lab-client-0.5.4.tgz':
+  '@adam0white/lab-client@file:vendor/adam0white-lab-client-0.5.10.tgz':
     dependencies:
       '@adam0white/hf-legacy': '@adam0white/human-framework@3.0.0'
-      '@adam0white/human-framework': 4.8.0
+      '@adam0white/human-framework': 4.10.0
+
+  '@adam0white/lab-kit@file:vendor/adam0white-lab-kit-0.5.27.tgz(@adam0white/lab-client@file:vendor/adam0white-lab-client-0.5.10.tgz)':
+    optionalDependencies:
+      '@adam0white/lab-client': file:vendor/adam0white-lab-client-0.5.10.tgz
 
   '@biomejs/biome@2.6.3':
     optionalDependencies:

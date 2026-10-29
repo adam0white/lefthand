@@ -26,7 +26,7 @@ import {
   validatePortablePerson,
 } from "@adam0white/lab-client";
 
-export const ENGINE = "4.8.0";
+export const ENGINE = "4.10.0";
 export const START = 1200 * 60_000;
 const MINUTE = 60_000;
 const DAY = 86_400_000;
@@ -202,7 +202,39 @@ export function opening(
         names: Object.fromEntries(CAST.map(([id, name]) => [id, name])),
         roles: {},
         prefer: "name",
-        actions: {},
+        actions: {
+          "check-well": {
+            base: "check the well",
+            past: "checked the well",
+            gerund: "checking the well",
+          },
+          "walk-lane": {
+            base: "walk the lane",
+            past: "walked the lane",
+            gerund: "walking the lane",
+          },
+          sleep: { base: "sleep", past: "slept", gerund: "sleeping" },
+        },
+        wordings: {
+          "decision.act": [
+            "Tonight I will {action}.{why}",
+            "For my evening round, I choose to {action}.{why}",
+            "I have decided to {action} tonight.{why}",
+            "This evening, I intend to {action}.{why}",
+          ],
+          "decision.wait": [
+            "Tonight I will wait.",
+            "I will wait here for now.",
+            "For now, I choose to wait.",
+            "I have decided to wait this evening.",
+          ],
+          "body.woke": [
+            "I woke in the winter night.",
+            "I am awake again tonight.",
+            "I have woken in the night.",
+            "I woke up during the winter night.",
+          ],
+        },
       },
       calendar: {
         id: "winter",
@@ -691,4 +723,24 @@ export function verifyArchive(archive: Archive) {
   if (!result.verified || result.fullHash !== archive.hashes.full)
     throw Error("HF replay hash mismatch");
   return result;
+}
+
+/** SCOPE: public self narration, rendered by HF with recorded wording choices.
+ * Read only when opening the menu; no host-private events or extra RNG route. */
+export function eveningAccounts(
+  s: ActorState,
+): { name: string; line: string }[] {
+  const run = take(s);
+  return CAST.flatMap(([id, name]) => {
+    const view = need(
+      inspect(run, {
+        perspective: { kind: "person", observer: id },
+        people: [id],
+        select: ["events"],
+      }),
+    );
+    const lines = view.events.flatMap((event) => event.narration);
+    const line = lines.at(-1)?.text;
+    return line ? [{ name, line }] : [];
+  });
 }
