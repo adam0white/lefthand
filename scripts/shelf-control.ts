@@ -133,10 +133,10 @@ if (
   throw Error("Local resume failed");
 
 // A checksummed envelope cannot claim Tariq using another source actor.
-const yusuf = parents.find((p) => p.castId === "hf.cast.tariq.well");
-if (!yusuf) throw Error("Missing Tariq source");
+const tariq = parents.find((p) => p.castId === "hf.cast.tariq.well");
+if (!tariq) throw Error("Missing Tariq source");
 const wrongId = "hf.cast.tariq.well";
-const portable = structuredClone(yusuf.transfer.portable) as { source: { personId: string } };
+const portable = structuredClone(tariq.transfer.portable) as { source: { personId: string } };
 portable.source.personId = "yusuf";
 const wrong = await createPersona({
   format: "hf-persona/1",
@@ -145,7 +145,7 @@ const wrong = await createPersona({
   branchId: "wrong-role",
   parentRevision: null,
   source: sourceInfo,
-  transfer: { ...yusuf.transfer, portable },
+  transfer: { ...tariq.transfer, portable },
   limitations: [],
 });
 const negative = memoryShelf([wrong]);
